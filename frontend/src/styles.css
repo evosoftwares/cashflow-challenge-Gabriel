@@ -1,33 +1,36 @@
 :root {
-  color: #16202a;
-  background: #f5f7fa;
+  color: #0f172a;
+  background: #f8fafc;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   font-synthesis: none;
   line-height: 1.5;
   text-rendering: optimizeLegibility;
+  --background: #f8fafc;
   --surface: #ffffff;
   --surface-subtle: #f8fafc;
-  --surface-muted: #eef3f6;
-  --border: #dce3ea;
-  --border-strong: #c5d0dc;
-  --text: #16202a;
-  --muted: #667485;
-  --muted-strong: #455565;
-  --accent: #0f766e;
-  --accent-dark: #0b5f59;
-  --accent-soft: #dff7ef;
+  --surface-muted: #f1f5f9;
+  --surface-raised: #ffffff;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text: #0f172a;
+  --muted: #64748b;
+  --muted-strong: #334155;
+  --primary: #0f766e;
+  --primary-hover: #115e59;
+  --primary-soft: #ccfbf1;
   --blue: #2563eb;
-  --blue-soft: #e7eefc;
+  --blue-soft: #dbeafe;
   --danger: #b42318;
-  --warning: #985a00;
-  --success-bg: #e4f7ed;
-  --warning-bg: #fff2d7;
-  --error-bg: #fde8e5;
-  --info-bg: #e8f1fb;
-  --shadow: 0 18px 48px rgb(22 32 42 / 8%);
-  --shadow-soft: 0 8px 22px rgb(22 32 42 / 6%);
+  --warning: #92400e;
+  --success-bg: #dcfce7;
+  --warning-bg: #fef3c7;
+  --error-bg: #fee2e2;
+  --info-bg: #dbeafe;
+  --ring: #0ea5e9;
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 6%), 0 12px 24px rgb(15 23 42 / 5%);
+  --shadow-hover: 0 1px 2px rgb(15 23 42 / 8%), 0 18px 34px rgb(15 23 42 / 8%);
 }
 
 * {
@@ -39,8 +42,9 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    linear-gradient(180deg, #eaf1f5 0, #f5f7fa 330px),
-    #f5f7fa;
+    radial-gradient(circle at top left, rgb(37 99 235 / 9%), transparent 340px),
+    linear-gradient(180deg, #eef6fb 0, var(--background) 300px),
+    var(--background);
 }
 
 button,
@@ -83,7 +87,7 @@ p {
 .app-shell {
   width: min(980px, calc(100% - 40px));
   margin: 0 auto;
-  padding: 24px 0 44px;
+  padding: 26px 0 44px;
 }
 
 .app-header,
@@ -92,7 +96,7 @@ p {
 .status-message {
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgb(255 255 255 / 94%);
+  background: rgb(255 255 255 / 96%);
   box-shadow: var(--shadow-soft);
 }
 
@@ -101,7 +105,8 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 18px;
+  padding: 18px 20px;
+  backdrop-filter: blur(10px);
 }
 
 .brand-block {
@@ -117,10 +122,10 @@ p {
   height: 46px;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid #b7e3d4;
+  border: 1px solid #99f6e4;
   border-radius: 8px;
-  background: linear-gradient(145deg, #effaf4, #d7f2e7);
-  color: var(--accent);
+  background: linear-gradient(145deg, #f0fdfa, #ccfbf1);
+  color: var(--primary);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 84%);
 }
 
@@ -162,7 +167,7 @@ p {
 .api-status--online {
   border-color: #b6dec9;
   background: var(--success-bg);
-  color: var(--accent);
+  color: var(--primary);
 }
 
 .api-status--offline {
@@ -213,8 +218,8 @@ p {
 .field select:focus,
 .segmented-control__option:focus-visible,
 .button:focus-visible {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgb(15 118 110 / 16%);
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px rgb(14 165 233 / 18%);
   outline: none;
 }
 
@@ -247,7 +252,7 @@ p {
 .context-state--ready {
   border-color: #b6dec9;
   background: var(--success-bg);
-  color: var(--accent);
+  color: var(--primary);
 }
 
 .context-grid {
@@ -282,7 +287,7 @@ p {
 .status-message--success {
   border-color: #b6dec9;
   background: var(--success-bg);
-  color: var(--accent);
+  color: var(--primary);
 }
 
 .status-message--warning {
@@ -312,6 +317,15 @@ p {
 
 .panel {
   padding: 18px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.panel:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-hover);
 }
 
 .panel-header {
@@ -353,7 +367,7 @@ p {
   min-height: 44px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface-muted);
+  background: #f1f5f9;
   padding: 4px;
 }
 
@@ -379,10 +393,10 @@ p {
 }
 
 .segmented-control__option.is-active {
-  border-color: var(--border);
+  border-color: #bae6fd;
   background: #fff;
-  color: var(--accent-dark);
-  box-shadow: 0 3px 10px rgb(22 32 42 / 8%);
+  color: var(--primary-hover);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
 }
 
 .form-actions {
@@ -420,20 +434,20 @@ p {
 }
 
 .button--primary {
-  background: var(--accent);
+  background: var(--primary);
   color: #fff;
-  box-shadow: 0 12px 24px rgb(15 118 110 / 18%);
+  box-shadow: 0 10px 20px rgb(15 118 110 / 16%);
 }
 
 .button--primary:hover:not(:disabled) {
-  background: var(--accent-dark);
-  box-shadow: 0 14px 28px rgb(15 118 110 / 22%);
+  background: var(--primary-hover);
+  box-shadow: 0 14px 26px rgb(15 118 110 / 20%);
 }
 
 .button--secondary {
   border-color: var(--border);
   background: #fff;
-  color: var(--text);
+  color: var(--muted-strong);
 }
 
 .button--secondary:hover:not(:disabled) {
@@ -454,7 +468,7 @@ p {
 .balance-state--available {
   border-color: #b6dec9;
   background: var(--success-bg);
-  color: var(--accent);
+  color: var(--primary);
 }
 
 .balance-state--pending,
@@ -475,11 +489,11 @@ p {
   grid-template-columns: 1fr;
   gap: 14px;
   align-items: start;
-  border: 1px solid #cbe4dc;
+  border: 1px solid #99f6e4;
   border-radius: 8px;
   background:
-    linear-gradient(135deg, #f8fffb 0%, #eefaf4 100%),
-    #f8fffb;
+    linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%),
+    #f0fdfa;
   padding: 18px;
 }
 
@@ -490,7 +504,7 @@ p {
 }
 
 .balance-hero strong {
-  color: var(--accent-dark);
+  color: var(--primary-hover);
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 900;
   letter-spacing: 0;
@@ -508,8 +522,9 @@ p {
 .metric-card {
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface-subtle);
+  background: #fff;
   padding: 13px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%);
 }
 
 .metric-card dt {
@@ -533,7 +548,7 @@ p {
 .metric-card--credit dd,
 .metric-grid__balance dt,
 .metric-grid__balance dd {
-  color: var(--accent-dark);
+  color: var(--primary-hover);
 }
 
 .metric-card--debit dt,
@@ -549,6 +564,7 @@ p {
   overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
+  background: #fff;
 }
 
 table {
@@ -571,7 +587,7 @@ tr:last-child td {
 }
 
 th {
-  background: var(--surface-subtle);
+  background: #f8fafc;
   color: var(--muted-strong);
   font-size: 0.74rem;
   font-weight: 900;
@@ -607,7 +623,7 @@ td {
 
 .type-badge--credit {
   background: var(--success-bg);
-  color: var(--accent);
+  color: var(--primary);
 }
 
 .type-badge--debit {
