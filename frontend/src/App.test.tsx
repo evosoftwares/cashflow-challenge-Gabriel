@@ -255,9 +255,12 @@ describe("Cash Flow operational portal", () => {
       expect(postAttempts).toBe(2);
     });
     await waitFor(() => {
-      expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
+      expect(screen.getByText("Sem pendências offline")).toBeInTheDocument();
     });
-    expect(screen.getByText("Sincronização concluída.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Sincronização concluída.")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8000/transactions",
       expect.objectContaining({ method: "POST" }),
@@ -637,15 +640,15 @@ describe("Cash Flow operational portal", () => {
     render(<App />);
     const table = await screen.findByRole("table", { name: "Movimentações financeiras" });
 
-    expect(screen.getByText("Página 1 de 2")).toBeInTheDocument();
+    expect(await screen.findByText("Página 1 de 2")).toBeInTheDocument();
     expect(within(table).getByText("Movimentação 01")).toBeInTheDocument();
     expect(within(table).getByText("Movimentação 10")).toBeInTheDocument();
     expect(within(table).queryByText("Movimentação 11")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Próxima página" }));
 
-    expect(screen.getByText("Página 2 de 2")).toBeInTheDocument();
-    expect(within(table).getByText("Movimentação 11")).toBeInTheDocument();
+    expect(await screen.findByText("Página 2 de 2")).toBeInTheDocument();
+    expect(await within(table).findByText("Movimentação 11")).toBeInTheDocument();
     expect(within(table).getByText("Movimentação 12")).toBeInTheDocument();
     expect(within(table).queryByText("Movimentação 01")).not.toBeInTheDocument();
   });
