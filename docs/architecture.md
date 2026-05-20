@@ -179,6 +179,26 @@ sequenceDiagram
     UI-->>User: Resumo do dia atualizado automaticamente
 ```
 
+## Observabilidade metrificada
+
+A aplicação registra eventos em JSON com contrato estável e também mantém contadores locais expostos em `GET /metrics`.
+
+```mermaid
+flowchart LR
+    API[FastAPI Middleware] -->|cashflow_http_requests_total| METRICS["GET /metrics"]
+    TX[Módulo de Lançamentos] -->|cashflow_transactions_created_total| METRICS
+    OUTBOX[Outbox Dispatcher] -->|cashflow_outbox_events_total| METRICS
+    WORKER[Worker de Consolidação] -->|cashflow_worker_messages_total| METRICS
+    CONS[Módulo de Consolidação] -->|cashflow_consolidation_events_total| METRICS
+    API -->|logs JSON| LOGS[(stdout)]
+    TX -->|logs JSON| LOGS
+    OUTBOX -->|logs JSON| LOGS
+    WORKER -->|logs JSON| LOGS
+    CONS -->|logs JSON| LOGS
+```
+
+No escopo local, as métricas são process-local e os logs saem em `stdout`. Em produção, a evolução natural é Prometheus coletando todas as réplicas e logs centralizados com retenção e alertas.
+
 ## Diagrama de domínios e capacidades
 
 ```mermaid

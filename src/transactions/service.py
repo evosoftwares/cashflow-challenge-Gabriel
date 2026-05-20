@@ -1,10 +1,10 @@
-import json
 import logging
 from decimal import Decimal, ROUND_HALF_UP
 from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
+from src.app.observability import record_counter
 from src.messaging.outbox import OutboxRepository
 from src.transactions.models import Transaction
 from src.transactions.repository import TransactionRepository
@@ -35,15 +35,16 @@ def create_transaction(db: Session, payload: TransactionCreate) -> Transaction:
     db.commit()
     db.refresh(saved)
 
-    logger.info(
-        json.dumps(
-            {
-                "event": "transaction_created",
-                "transaction_id": str(saved.id),
-                "merchant_id": str(saved.merchant_id),
-                "amount": f"{saved.amount:.2f}",
-            }
-        )
+    record_counter(
+        logger,
+        event="transaction_created",
+        component="transactions",
+        metric_name="cashflow_transactions_created_total",
+        metric_labels={"type": saved.type},
+        transaction_id=str(saved.id),
+        merchant_id=str(saved.merchant_id),
+        transaction_type=saved.type,
+        amount=f"{saved.amount:.2f}",
     )
     return saved
 

@@ -134,7 +134,7 @@ Se o crescimento tornar os domínios operacionalmente independentes, a evoluçã
 - avaliar Kafka, Pub/Sub ou outro broker se houver necessidade de maior retenção, replay ou throughput;
 - aplicar sharding por `merchant_id` em cenários de altíssimo volume;
 - usar autoscaling e infraestrutura gerenciada;
-- evoluir observabilidade para métricas, logs centralizados e tracing distribuído;
+- evoluir métricas locais para coleta centralizada, logs centralizados e tracing distribuído;
 - avaliar alta disponibilidade multi-AZ ou multi-região conforme criticidade do negócio.
 
 Essa evolução só deve ser feita quando houver evidência de volume, criticidade e independência operacional que justifique o custo adicional.

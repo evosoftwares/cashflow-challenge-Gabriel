@@ -67,7 +67,7 @@ Fluxo principal:
 - Alembic para versionar o schema do banco.
 - API Key simples para proteger endpoints no escopo do desafio.
 - Portal operacional React para demonstrar criação, listagem e consulta do consolidado.
-- Logs estruturados básicos e healthcheck.
+- Logs estruturados com métricas, endpoint `/metrics` e healthcheck.
 
 Os ADRs estão em `docs/adr/`.
 
@@ -265,6 +265,19 @@ Resposta:
 }
 ```
 
+### GET /metrics
+
+```bash
+curl http://localhost:8000/metrics
+```
+
+Exemplo:
+
+```text
+cashflow_transactions_created_total{type="CREDIT"} 1
+cashflow_http_requests_total{method="POST",path="/transactions",status="201"} 1
+```
+
 ### POST /transactions
 
 ```bash
@@ -351,17 +364,20 @@ Para produção, a recomendação é evoluir para JWT/OAuth2, HTTPS obrigatório
 Implementado:
 
 - `/health`.
-- Logs básicos de criação de lançamento.
-- Logs básicos de publicação via Outbox.
-- Logs básicos de consolidação.
-- Logs de erro no worker.
+- `/metrics` em formato texto compatível com Prometheus.
+- Logs estruturados em JSON com `timestamp`, `log_schema_version`, `event`, `component` e `metric`.
+- Contadores de requisições HTTP por método, rota e status.
+- Contadores de lançamentos criados por tipo.
+- Contadores de publicação via Outbox.
+- Contadores de consolidação, duplicidade, ACK e falhas do worker.
 
 Evoluções recomendadas:
 
-- Prometheus.
+- Prometheus coletando todas as réplicas.
 - Grafana.
 - Alertas de fila acumulada.
 - Monitoramento de falhas de processamento.
+- Logs centralizados com retenção configurada.
 - Tracing distribuído.
 
 ## Evoluções futuras

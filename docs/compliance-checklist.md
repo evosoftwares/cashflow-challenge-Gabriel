@@ -27,7 +27,7 @@ Este checklist mapeia cada requisito do avaliador para evidencia objetiva no rep
 | Arquitetura de transicao, se necessaria | Atendido | `docs/transition-architecture.md` |
 | Estimativa de custos | Atendido | `docs/costs.md` |
 | Escalabilidade e plano de crescimento | Atendido | `docs/scalability.md`, `README.md` |
-| Monitoramento e observabilidade | Atendido | `/health`, logs basicos, `docs/observability.md` |
+| Monitoramento e observabilidade | Atendido | `/health`, `/metrics`, logs JSON metrificados, `docs/observability.md` |
 | Criterios de seguranca para integracao | Atendido | API Key, validacao de payload, `docs/security.md` |
 
 ## Decisoes que evitam overengineering

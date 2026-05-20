@@ -1,11 +1,12 @@
 import logging
 
 from src.app.config import get_settings
+from src.app.observability import configure_logging
 from src.consolidation.service import apply_transaction_created_event
 from src.database.connection import SessionLocal
 from src.messaging.consumer import RabbitMQConsumer
 
-logging.basicConfig(level=logging.INFO)
+configure_logging()
 logger = logging.getLogger(__name__)
 
 

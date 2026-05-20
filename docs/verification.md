@@ -19,13 +19,15 @@ PATH=.venv/bin:$PATH pytest -q
 Resultado:
 
 ```text
-19 passed
+21 passed
 ```
 
-Cobertura relevante adicionada para realtime:
+Cobertura relevante adicionada para realtime e observabilidade:
 
 - `GET /daily-balances/{date}/stream` emite evento SSE `daily_balance`.
 - O portal atualiza o `Resumo do dia` a partir do stream sem acionamento manual.
+- O contrato de log JSON metrificado inclui `log_schema_version`, `event`, `component` e `metric`.
+- `GET /metrics` expõe contadores de requisição HTTP e lançamentos criados.
 
 Testes do front-end:
 

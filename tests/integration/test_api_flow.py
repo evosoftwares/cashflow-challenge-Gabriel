@@ -181,6 +181,31 @@ def test_post_transactions_keeps_working_when_worker_is_stopped(app_context):
     assert balance_response.status_code == 404
 
 
+def test_metrics_endpoint_exposes_request_and_transaction_counters(app_context):
+    client, _ = app_context
+    merchant_id = uuid4()
+
+    response = client.post(
+        "/transactions",
+        headers={"X-API-Key": "test-key"},
+        json={
+            "merchant_id": str(merchant_id),
+            "type": "CREDIT",
+            "amount": "100.00",
+            "description": "Venda metrificada",
+            "occurred_at": "2026-05-20T10:00:00",
+        },
+    )
+    metrics_response = client.get("/metrics")
+
+    assert response.status_code == 201
+    assert metrics_response.status_code == 200
+    assert metrics_response.headers["content-type"].startswith("text/plain")
+    metrics = metrics_response.text
+    assert 'cashflow_transactions_created_total{type="CREDIT"} 1' in metrics
+    assert 'cashflow_http_requests_total{method="POST",path="/transactions",status="201"} 1' in metrics
+
+
 def test_protected_endpoints_require_api_key(app_context):
     client, _ = app_context
 
