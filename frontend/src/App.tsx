@@ -244,8 +244,10 @@ export default function App() {
 
       <TransactionsTable
         disabled={!hasProtectedContext}
+        filterDate={operationDate}
         loading={transactionsLoading}
         transactions={transactions}
+        onFilterDateChange={setOperationDate}
         onRefresh={refreshTransactions}
       />
     </main>

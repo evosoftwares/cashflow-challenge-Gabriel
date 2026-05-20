@@ -5,7 +5,9 @@ import type { TransactionListItem } from "../api/client";
 type TransactionsTableProps = {
   transactions: TransactionListItem[];
   disabled: boolean;
+  filterDate: string;
   loading: boolean;
+  onFilterDateChange: (value: string) => void;
   onRefresh: () => void;
 };
 
@@ -27,7 +29,14 @@ function formatType(value: TransactionListItem["type"]) {
   return value === "CREDIT" ? "Entrada" : "Saída";
 }
 
-export function TransactionsTable({ transactions, disabled, loading, onRefresh }: TransactionsTableProps) {
+export function TransactionsTable({
+  transactions,
+  disabled,
+  filterDate,
+  loading,
+  onFilterDateChange,
+  onRefresh,
+}: TransactionsTableProps) {
   const counterLabel = transactions.length === 1 ? "1 movimentação" : `${transactions.length} movimentações`;
 
   return (
@@ -37,16 +46,28 @@ export function TransactionsTable({ transactions, disabled, loading, onRefresh }
           <h2 id="transactions-title">Movimentações do dia</h2>
           <p>{counterLabel} na data selecionada</p>
         </div>
-        <button
-          aria-label="Atualizar movimentações"
-          className="button button--secondary"
-          disabled={disabled || loading}
-          onClick={onRefresh}
-          type="button"
-        >
-          <RefreshCw size={16} strokeWidth={2.2} aria-hidden="true" />
-          {loading ? "Atualizando..." : "Atualizar"}
-        </button>
+        <div className="transactions-toolbar">
+          <label className="field transactions-filter">
+            <span>Filtrar por data</span>
+            <input
+              aria-label="Filtrar movimentações por data"
+              disabled={disabled}
+              type="date"
+              value={filterDate}
+              onChange={(event) => onFilterDateChange(event.target.value)}
+            />
+          </label>
+          <button
+            aria-label="Atualizar movimentações"
+            className="button button--secondary"
+            disabled={disabled || loading}
+            onClick={onRefresh}
+            type="button"
+          >
+            <RefreshCw size={16} strokeWidth={2.2} aria-hidden="true" />
+            {loading ? "Atualizando..." : "Atualizar"}
+          </button>
+        </div>
       </div>
 
       <div className="table-wrap">

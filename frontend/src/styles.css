@@ -616,6 +616,16 @@ p {
   padding-bottom: 16px;
 }
 
+.transactions-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.transactions-filter {
+  min-width: 180px;
+}
+
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -733,6 +743,11 @@ td {
     flex-direction: column;
   }
 
+  .transactions-toolbar {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
   .balance-hero {
     grid-template-columns: 1fr;
     min-height: 0;
@@ -752,6 +767,10 @@ td {
   .form-grid,
   .segmented-control {
     grid-template-columns: 1fr;
+  }
+
+  .transactions-toolbar {
+    flex-direction: column;
   }
 
   .app-header,

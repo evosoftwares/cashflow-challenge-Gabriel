@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import App from "./App";
@@ -282,6 +282,42 @@ describe("Cash Flow operational portal", () => {
     expect(within(table).getByText("Venda no cartao")).toBeInTheDocument();
     expect(within(table).getByText("Entrada")).toBeInTheDocument();
     expect(within(table).getByText("R$ 100,00")).toBeInTheDocument();
+  });
+
+  test("filters day transactions by the selected movement date", async () => {
+    const fetchMock = mockFetch((input) => {
+      const url = String(input);
+      if (url.includes("/transactions?")) {
+        if (url.includes("date=2026-05-21")) {
+          return jsonResponse(200, [
+            {
+              id: "9a6aa074-1fc2-4c0f-932f-d2f44d555e57",
+              merchant_id: demoMerchantId,
+              type: "DEBIT",
+              amount: "35.00",
+              description: "Compra filtrada",
+              occurred_at: "2026-05-21T09:30:00",
+              created_at: "2026-05-21T09:31:00",
+            },
+          ]);
+        }
+        return jsonResponse(200, []);
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Filtrar movimentações por data"), {
+      target: { value: "2026-05-21" },
+    });
+
+    const table = await screen.findByRole("table", { name: "Movimentações financeiras" });
+    expect(await within(table).findByText("Compra filtrada")).toBeInTheDocument();
+    expect(within(table).getByText("Saída")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("date=2026-05-21"),
+      expect.objectContaining({ headers: expect.objectContaining({ "X-API-Key": "local-dev-key" }) }),
+    );
   });
 
   test("shows a clear API key error when the API returns 401", async () => {
