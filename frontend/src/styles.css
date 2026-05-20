@@ -187,8 +187,27 @@ p {
 }
 
 .api-status {
-  min-height: 32px;
-  padding: 0 11px;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.api-status__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.05;
+}
+
+.api-status__label {
+  color: currentColor;
+  font-size: 0.76rem;
+}
+
+.api-status__target {
+  color: currentColor;
+  font-size: 0.63rem;
+  font-weight: 750;
+  opacity: 0.72;
 }
 
 .status-dot {

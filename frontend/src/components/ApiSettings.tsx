@@ -2,9 +2,22 @@ type ApiSettingsProps = {
   apiStatus: "checking" | "online" | "offline";
 };
 
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+
+function getApiTargetLabel() {
+  try {
+    const url = new URL(apiBaseUrl);
+    const isLocal = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    return isLocal ? `API local ${url.host}` : `API ${url.host}`;
+  } catch {
+    return "API configurada";
+  }
+}
+
 export function ApiSettings({ apiStatus }: ApiSettingsProps) {
   const statusLabel =
-    apiStatus === "online" ? "Sistema conectado" : apiStatus === "offline" ? "Sistema indisponível" : "Verificando sistema";
+    apiStatus === "online" ? "API conectada" : apiStatus === "offline" ? "API indisponível" : "Verificando API";
+  const apiTargetLabel = getApiTargetLabel();
 
   return (
     <header className="app-header">
@@ -20,9 +33,16 @@ export function ApiSettings({ apiStatus }: ApiSettingsProps) {
         </div>
       </div>
       <div className="header-controls">
-        <span className={`api-status api-status--${apiStatus}`}>
+        <span
+          aria-label={`${statusLabel}. ${apiTargetLabel}`}
+          className={`api-status api-status--${apiStatus}`}
+          title={`${statusLabel}: ${apiBaseUrl}`}
+        >
           <span className="status-dot" aria-hidden="true" />
-          {statusLabel}
+          <span className="api-status__content">
+            <span className="api-status__label">{statusLabel}</span>
+            <span className="api-status__target">{apiTargetLabel}</span>
+          </span>
         </span>
       </div>
     </header>
