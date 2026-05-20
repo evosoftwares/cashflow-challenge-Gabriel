@@ -86,10 +86,12 @@ Os ADRs estão em `docs/adr/`.
 - Custos: `docs/costs.md`.
 - Escalabilidade e plano de crescimento: `docs/scalability.md`.
 - Arquitetura de transição: `docs/transition-architecture.md`.
+- Prontidão final para entrega e produção real: `docs/production-readiness.md`.
 - Checklist de aderência ao desafio: `docs/compliance-checklist.md`.
 - Evidências de verificação: `docs/verification.md`.
 - Migração versionada com Alembic: `src/database/alembic/versions/`.
 - Testes unitários, integração leve e carga.
+- CI no GitHub Actions para testes de backend, frontend, build e validação do Docker Compose.
 
 ## Como rodar localmente
 

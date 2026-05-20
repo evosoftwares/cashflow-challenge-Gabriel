@@ -29,6 +29,7 @@ Este checklist mapeia cada requisito do avaliador para evidencia objetiva no rep
 | Escalabilidade e plano de crescimento | Atendido | `docs/scalability.md`, `README.md` |
 | Monitoramento e observabilidade | Atendido | `/health`, `/metrics`, logs JSON metrificados, `docs/observability.md` |
 | Criterios de seguranca para integracao | Atendido | API Key, validacao de payload, `docs/security.md` |
+| Prontidao final para entrega | Atendido | `docs/production-readiness.md`, `.github/workflows/ci.yml`, `.dockerignore` |
 
 ## Decisoes que evitam overengineering
 
@@ -36,6 +37,7 @@ Este checklist mapeia cada requisito do avaliador para evidencia objetiva no rep
 - RabbitMQ foi escolhido por atender ao desacoplamento entre lancamento e consolidacao com menor complexidade que Kafka para o volume informado.
 - O banco oficial da execucao local e PostgreSQL via Docker Compose.
 - Supabase nao e requisito do avaliador. Pode ser usado futuramente como PostgreSQL gerenciado, mas nao faz parte da entrega obrigatoria.
+- O deploy real em cloud nao foi realizado porque o enunciado nao define provedor, regiao, conta ou SLA. A entrega final fica pronta para avaliacao local e possui caminho documentado para producao real em `docs/production-readiness.md`.
 
 ## Evidencias finais recomendadas
 

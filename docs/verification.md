@@ -19,7 +19,7 @@ PATH=.venv/bin:$PATH pytest -q
 Resultado:
 
 ```text
-21 passed
+22 passed
 ```
 
 Cobertura relevante adicionada para realtime e observabilidade:
@@ -39,8 +39,32 @@ npm --prefix frontend run build
 Resultado:
 
 ```text
-8 passed
+9 passed
 vite build completed successfully
+```
+
+Validação local final também confirmou:
+
+```text
+22 passed
+9 passed
+vite build completed successfully
+```
+
+Runtime Docker validado:
+
+```text
+GET /health  -> 200 OK
+GET /metrics -> 200 OK
+```
+
+Smoke test funcional em Docker:
+
+```text
+POST CREDIT 100.00 -> 201 Created
+POST DEBIT 35.00  -> 201 Created
+GET /transactions -> 2 movimentações
+GET /daily-balances/2026-05-20 -> balance 65.00
 ```
 
 ## Migrations
@@ -163,9 +187,9 @@ k6 run tests/load/daily_balance_50rps.js
 Resultado:
 
 ```text
-http_reqs......................: 3001   50.01052/s
+http_reqs......................: 3000   49.997985/s
 http_req_failed................: 0.00%
-checks_succeeded...............: 100.00% 3001 out of 3001
+checks_succeeded...............: 100.00% 3000 out of 3000
 ```
 
 O resultado atende ao requisito de 50 requisicoes por segundo com falha inferior a 5%.

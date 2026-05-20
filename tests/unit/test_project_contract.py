@@ -94,3 +94,24 @@ def test_overload_worker_script_restarts_worker_on_failure():
     assert "cleanup()" in script
     assert "trap cleanup EXIT" in script
     assert "docker compose start worker" in script
+
+
+def test_final_delivery_artifacts_are_production_ready():
+    verification = Path("docs/verification.md").read_text()
+    scalability = Path("docs/scalability.md").read_text()
+    production_readiness = Path("docs/production-readiness.md")
+    workflow = Path(".github/workflows/ci.yml")
+    dockerignore = Path(".dockerignore")
+
+    assert production_readiness.is_file()
+    assert "Prontidao de Producao" in production_readiness.read_text()
+    assert workflow.is_file()
+    assert "pytest" in workflow.read_text()
+    assert "npm --prefix frontend test" in workflow.read_text()
+    assert dockerignore.is_file()
+    assert ".venv/" in dockerignore.read_text()
+    assert "frontend/node_modules/" in dockerignore.read_text()
+    assert "9 passed" in verification
+    assert "8 passed" not in verification
+    assert "foi implementada como uma operação atômica" in scalability
+    assert "deve evoluir para uma operação atômica" not in scalability

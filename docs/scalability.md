@@ -34,7 +34,7 @@ Antes de adotar Kafka, Kubernetes, sharding ou microsserviços independentes, a 
 
 ### Upsert atômico no consolidado
 
-A atualização de `daily_balances` deve evoluir para uma operação atômica no PostgreSQL:
+A atualização de `daily_balances` foi implementada como uma operação atômica no PostgreSQL:
 
 ```sql
 INSERT INTO daily_balances (
