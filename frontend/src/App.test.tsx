@@ -19,6 +19,16 @@ const jsonResponse = (status: number, body: unknown): MockResponse => ({
 const healthResponse = () => jsonResponse(200, { status: "ok" });
 const demoMerchantId = "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11";
 
+const transactionItem = (overrides: Record<string, string>) => ({
+  id: overrides.id ?? crypto.randomUUID(),
+  merchant_id: overrides.merchant_id ?? demoMerchantId,
+  type: overrides.type ?? "CREDIT",
+  amount: overrides.amount ?? "100.00",
+  description: overrides.description ?? "Movimentação teste",
+  occurred_at: overrides.occurred_at ?? "2026-05-20T10:00:00",
+  created_at: overrides.created_at ?? "2026-05-20T10:01:00",
+});
+
 const streamResponse = (messages: string[]) =>
   new Response(
     new ReadableStream({
@@ -62,6 +72,13 @@ function mockFetch(handler: (input: RequestInfo | URL, init?: RequestInit) => Mo
 async function fillOperationContext(user: ReturnType<typeof userEvent.setup>) {
   await user.clear(screen.getByLabelText("Data"));
   await user.type(screen.getByLabelText("Data"), "2026-05-20");
+}
+
+function tableBodyRowTexts(table: HTMLElement): string[] {
+  return within(table)
+    .getAllByRole("row")
+    .slice(1)
+    .map((row) => (row.textContent ?? "").replace(/\s+/g, " "));
 }
 
 describe("Cash Flow operational portal", () => {
@@ -318,6 +335,143 @@ describe("Cash Flow operational portal", () => {
       expect.stringContaining("date=2026-05-21"),
       expect.objectContaining({ headers: expect.objectContaining({ "X-API-Key": "local-dev-key" }) }),
     );
+  });
+
+  test("sorts day transactions by type, amount, description, occurrence and creation", async () => {
+    mockFetch((input) => {
+      const url = String(input);
+      if (url.includes("/transactions?")) {
+        return jsonResponse(200, [
+          transactionItem({
+            id: "4dc7300e-8df7-4634-b6a0-8bda7afc4218",
+            type: "DEBIT",
+            amount: "50.00",
+            description: "Zulu fornecedor",
+            occurred_at: "2026-05-20T12:00:00",
+            created_at: "2026-05-20T12:01:00",
+          }),
+          transactionItem({
+            id: "6b9f41ad-1f43-41c6-83da-484e92a80c30",
+            type: "CREDIT",
+            amount: "10.00",
+            description: "Alpha venda",
+            occurred_at: "2026-05-20T09:00:00",
+            created_at: "2026-05-20T09:01:00",
+          }),
+          transactionItem({
+            id: "41bf5b64-fcb3-494d-9049-5826d9e3afbd",
+            type: "CREDIT",
+            amount: "30.00",
+            description: "Beta cartão",
+            occurred_at: "2026-05-20T10:00:00",
+            created_at: "2026-05-20T10:01:00",
+          }),
+        ]);
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+    const table = await screen.findByRole("table", { name: "Movimentações financeiras" });
+
+    await user.click(within(table).getByRole("button", { name: "Ordenar por tipo" }));
+    expect(tableBodyRowTexts(table).at(0)).toContain("Entrada");
+    expect(tableBodyRowTexts(table).at(-1)).toContain("Saída");
+
+    await user.click(within(table).getByRole("button", { name: "Ordenar por valor" }));
+    expect(tableBodyRowTexts(table)[0]).toContain("R$ 10,00");
+
+    await user.click(within(table).getByRole("button", { name: "Ordenar por descrição" }));
+    expect(tableBodyRowTexts(table)[0]).toContain("Alpha venda");
+
+    await user.click(within(table).getByRole("button", { name: "Ordenar por ocorrência" }));
+    expect(tableBodyRowTexts(table)[0]).toContain("09:00");
+
+    await user.click(within(table).getByRole("button", { name: "Ordenar por criação" }));
+    expect(tableBodyRowTexts(table)[0]).toContain("09:01");
+  });
+
+  test("searches day transactions by visible transaction information", async () => {
+    mockFetch((input) => {
+      const url = String(input);
+      if (url.includes("/transactions?")) {
+        return jsonResponse(200, [
+          transactionItem({
+            id: "7a4de3ff-8047-42c7-b9b2-679332e8f304",
+            type: "DEBIT",
+            amount: "50.00",
+            description: "Fornecedor padaria",
+            occurred_at: "2026-05-20T12:00:00",
+            created_at: "2026-05-20T12:01:00",
+          }),
+          transactionItem({
+            id: "b83630f9-c72a-46c4-a74f-5a852d020f6f",
+            type: "CREDIT",
+            amount: "10.00",
+            description: "Venda balcão",
+            occurred_at: "2026-05-20T09:00:00",
+            created_at: "2026-05-20T09:01:00",
+          }),
+        ]);
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+    const table = await screen.findByRole("table", { name: "Movimentações financeiras" });
+
+    await user.type(screen.getByLabelText("Buscar movimentações"), "fornecedor");
+    expect(within(table).getByText("Fornecedor padaria")).toBeInTheDocument();
+    expect(within(table).queryByText("Venda balcão")).not.toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("Buscar movimentações"));
+    await user.type(screen.getByLabelText("Buscar movimentações"), "saída");
+    expect(within(table).getByText("Fornecedor padaria")).toBeInTheDocument();
+    expect(within(table).queryByText("Venda balcão")).not.toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("Buscar movimentações"));
+    await user.type(screen.getByLabelText("Buscar movimentações"), "10,00");
+    expect(within(table).getByText("Venda balcão")).toBeInTheDocument();
+    expect(within(table).queryByText("Fornecedor padaria")).not.toBeInTheDocument();
+  });
+
+  test("paginates day transactions with ten rows per page", async () => {
+    mockFetch((input) => {
+      const url = String(input);
+      if (url.includes("/transactions?")) {
+        return jsonResponse(
+          200,
+          Array.from({ length: 12 }, (_, index) =>
+            transactionItem({
+              id: `10000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+              amount: `${index + 1}.00`,
+              description: `Movimentação ${String(index + 1).padStart(2, "0")}`,
+              occurred_at: `2026-05-20T${String(8 + index).padStart(2, "0")}:00:00`,
+              created_at: `2026-05-20T${String(8 + index).padStart(2, "0")}:01:00`,
+            }),
+          ),
+        );
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+    const table = await screen.findByRole("table", { name: "Movimentações financeiras" });
+
+    expect(screen.getByText("Página 1 de 2")).toBeInTheDocument();
+    expect(within(table).getByText("Movimentação 01")).toBeInTheDocument();
+    expect(within(table).getByText("Movimentação 10")).toBeInTheDocument();
+    expect(within(table).queryByText("Movimentação 11")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Próxima página" }));
+
+    expect(screen.getByText("Página 2 de 2")).toBeInTheDocument();
+    expect(within(table).getByText("Movimentação 11")).toBeInTheDocument();
+    expect(within(table).getByText("Movimentação 12")).toBeInTheDocument();
+    expect(within(table).queryByText("Movimentação 01")).not.toBeInTheDocument();
   });
 
   test("shows a clear API key error when the API returns 401", async () => {
