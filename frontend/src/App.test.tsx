@@ -107,10 +107,8 @@ describe("Cash Flow operational portal", () => {
     expect(screen.queryByText("Chave de acesso")).not.toBeInTheDocument();
     expect(screen.getByText("Mercado do Bairro - Demonstração")).toBeInTheDocument();
     expect(screen.getByText("Pronto para usar")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Atualizar movimentações" })).toBeEnabled();
-    });
-    expect(screen.getByRole("button", { name: "Atualizar resumo do dia" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Atualizar movimentações" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Atualizar resumo do dia" })).not.toBeInTheDocument();
 
     const saveButton = screen.getByRole("button", { name: "Salvar movimentação" });
     expect(saveButton).toBeDisabled();
@@ -163,34 +161,12 @@ describe("Cash Flow operational portal", () => {
     );
   });
 
-  test("shows the pending consolidation state when the balance endpoint returns 404", async () => {
+  test("shows the pending consolidation state from realtime updates", async () => {
     mockFetch((input) => {
       const url = String(input);
       if (url.endsWith("/health")) return healthResponse();
-      if (url.includes("/daily-balances/")) return jsonResponse(404, { detail: "Daily balance not found" });
-      throw new Error(`Unexpected request: ${url}`);
-    });
-    const user = userEvent.setup();
-
-    render(<App />);
-    await fillOperationContext(user);
-    await user.click(screen.getByRole("button", { name: "Atualizar resumo do dia" }));
-
-    expect(await screen.findByText("Aguardando atualização")).toBeInTheDocument();
-  });
-
-  test("renders a daily balance when consolidation is available", async () => {
-    mockFetch((input) => {
-      const url = String(input);
-      if (url.endsWith("/health")) return healthResponse();
-      if (url.includes("/daily-balances/")) {
-        return jsonResponse(200, {
-          merchant_id: "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11",
-          date: "2026-05-20",
-          total_credit: "300.00",
-          total_debit: "80.00",
-          balance: "220.00",
-        });
+      if (url.includes("/daily-balances/2026-05-20/stream")) {
+        return streamResponse(['event: daily_balance\ndata: {"status":"pending"}\n\n']);
       }
       throw new Error(`Unexpected request: ${url}`);
     });
@@ -198,7 +174,25 @@ describe("Cash Flow operational portal", () => {
 
     render(<App />);
     await fillOperationContext(user);
-    await user.click(screen.getByRole("button", { name: "Atualizar resumo do dia" }));
+
+    expect(await screen.findByText("Aguardando atualização")).toBeInTheDocument();
+  });
+
+  test("renders a daily balance when realtime consolidation is available", async () => {
+    mockFetch((input) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return healthResponse();
+      if (url.includes("/daily-balances/2026-05-20/stream")) {
+        return streamResponse([
+          'event: daily_balance\ndata: {"status":"available","merchant_id":"8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11","date":"2026-05-20","total_credit":"300.00","total_debit":"80.00","balance":"220.00"}\n\n',
+        ]);
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+    await fillOperationContext(user);
 
     expect(await screen.findByText("Saldo atualizado")).toBeInTheDocument();
     expect(screen.getByText("R$ 300,00")).toBeInTheDocument();
@@ -292,8 +286,6 @@ describe("Cash Flow operational portal", () => {
     const user = userEvent.setup();
 
     render(<App />);
-    await fillOperationContext(user);
-    await user.click(screen.getByRole("button", { name: "Atualizar movimentações" }));
 
     const table = await screen.findByRole("table", { name: "Movimentações financeiras" });
     expect(within(table).getByText("Venda no cartao")).toBeInTheDocument();

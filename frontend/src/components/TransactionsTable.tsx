@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpDown, ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react";
+import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import type { TransactionListItem } from "../api/client";
 
@@ -7,9 +7,7 @@ type TransactionsTableProps = {
   transactions: TransactionListItem[];
   disabled: boolean;
   filterDate: string;
-  loading: boolean;
   onFilterDateChange: (value: string) => void;
-  onRefresh: () => void;
 };
 
 type SortKey = "type" | "amount" | "description" | "occurred_at" | "created_at";
@@ -89,9 +87,7 @@ export function TransactionsTable({
   transactions,
   disabled,
   filterDate,
-  loading,
   onFilterDateChange,
-  onRefresh,
 }: TransactionsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
@@ -161,16 +157,6 @@ export function TransactionsTable({
               onChange={(event) => onFilterDateChange(event.target.value)}
             />
           </label>
-          <button
-            aria-label="Atualizar movimentações"
-            className="button button--secondary"
-            disabled={disabled || loading}
-            onClick={onRefresh}
-            type="button"
-          >
-            <RefreshCw size={16} strokeWidth={2.2} aria-hidden="true" />
-            {loading ? "Atualizando..." : "Atualizar"}
-          </button>
         </div>
       </div>
 

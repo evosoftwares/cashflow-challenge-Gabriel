@@ -56,7 +56,6 @@ export default function App() {
   const [dailyBalance, setDailyBalance] = useState<DailyBalance | null>(null);
   const [balanceState, setBalanceState] = useState<"idle" | "loading" | "available" | "pending" | "error">("idle");
   const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
-  const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "warning" | "error" | "info"; text: string } | null>(null);
 
@@ -112,7 +111,6 @@ export default function App() {
 
   async function refreshTransactions(options: { clearMessage?: boolean } = {}) {
     if (!hasProtectedContext) return;
-    setTransactionsLoading(true);
     if (options.clearMessage ?? true) {
       setMessage(null);
     }
@@ -121,8 +119,6 @@ export default function App() {
       setTransactions(rows);
     } catch (error) {
       setMessage({ tone: "error", text: errorMessage(error) });
-    } finally {
-      setTransactionsLoading(false);
     }
   }
 
@@ -221,10 +217,8 @@ export default function App() {
       <div className="primary-grid">
         <DailyBalancePanel
           balance={dailyBalance}
-          disabled={!hasProtectedContext}
           date={operationDate}
           state={balanceState}
-          onRefresh={refreshDailyBalance}
         />
 
         <TransactionForm
@@ -245,10 +239,8 @@ export default function App() {
       <TransactionsTable
         disabled={!hasProtectedContext}
         filterDate={operationDate}
-        loading={transactionsLoading}
         transactions={transactions}
         onFilterDateChange={setOperationDate}
-        onRefresh={refreshTransactions}
       />
     </main>
   );

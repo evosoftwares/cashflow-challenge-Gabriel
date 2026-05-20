@@ -1,13 +1,11 @@
-import { ArrowDownRight, ArrowUpRight, RefreshCw, WalletCards } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, WalletCards } from "lucide-react";
 
 import type { DailyBalance } from "../api/client";
 
 type DailyBalancePanelProps = {
   balance: DailyBalance | null;
   state: "idle" | "loading" | "available" | "pending" | "error";
-  disabled: boolean;
   date: string;
-  onRefresh: () => void;
 };
 
 const emptyValue = "R$ 0,00";
@@ -34,7 +32,7 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(parsedDate);
 }
 
-export function DailyBalancePanel({ balance, state, disabled, date, onRefresh }: DailyBalancePanelProps) {
+export function DailyBalancePanel({ balance, state, date }: DailyBalancePanelProps) {
   const balanceValue = formatCurrency(balance?.balance);
 
   return (
@@ -44,16 +42,6 @@ export function DailyBalancePanel({ balance, state, disabled, date, onRefresh }:
           <h2 id="balance-title">Resumo do dia</h2>
           <p>{formatDate(date)}</p>
         </div>
-        <button
-          aria-label="Atualizar resumo do dia"
-          className="button button--secondary"
-          disabled={disabled || state === "loading"}
-          onClick={onRefresh}
-          type="button"
-        >
-          <RefreshCw size={16} strokeWidth={2.2} aria-hidden="true" />
-          Atualizar
-        </button>
       </div>
 
       <div className="balance-hero">
