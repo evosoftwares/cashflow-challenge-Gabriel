@@ -121,6 +121,40 @@ def test_daily_balance_is_updated_after_worker_applies_outbox_events(app_context
     }
 
 
+def test_daily_balance_stream_emits_current_balance_event(app_context):
+    client, SessionLocal = app_context
+    merchant_id = uuid4()
+    client.post(
+        "/transactions",
+        headers={"X-API-Key": "test-key"},
+        json={
+            "merchant_id": str(merchant_id),
+            "type": "CREDIT",
+            "amount": "75.00",
+            "description": "Venda realtime",
+            "occurred_at": "2026-05-20T10:00:00",
+        },
+    )
+
+    with SessionLocal() as session:
+        outbox_event = session.query(OutboxEvent).one()
+        apply_transaction_created_event(session, outbox_event.payload)
+
+    with client.stream(
+        "GET",
+        f"/daily-balances/2026-05-20/stream?merchant_id={merchant_id}&once=true",
+        headers={"X-API-Key": "test-key"},
+    ) as response:
+        lines = response.iter_lines()
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/event-stream")
+        assert next(lines) == "event: daily_balance"
+        data_line = next(lines)
+
+    assert '"status":"available"' in data_line
+    assert '"balance":"75.00"' in data_line
+
+
 def test_post_transactions_keeps_working_when_worker_is_stopped(app_context):
     client, SessionLocal = app_context
     merchant_id = uuid4()

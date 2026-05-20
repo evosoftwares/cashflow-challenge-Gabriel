@@ -6,6 +6,7 @@ import {
   getDailyBalance,
   getHealth,
   listTransactions,
+  subscribeDailyBalance,
   type DailyBalance,
   type TransactionListItem,
   type TransactionType,
@@ -32,6 +33,12 @@ function normalizeAmount(value: string) {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue) || numericValue <= 0) return value;
   return numericValue.toFixed(2);
+}
+
+function isValidUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value.trim(),
+  );
 }
 
 function errorMessage(error: unknown) {
@@ -70,10 +77,42 @@ export default function App() {
   }, []);
 
   const hasProtectedContext = useMemo(
-    () => merchantId.trim().length > 0 && operationDate.trim().length > 0,
+    () => isValidUuid(merchantId) && operationDate.trim().length > 0,
     [merchantId, operationDate],
   );
   const canCreate = hasProtectedContext && amount.trim().length > 0 && occurredAt.trim().length > 0;
+
+  useEffect(() => {
+    if (!hasProtectedContext) {
+      setDailyBalance(null);
+      setBalanceState("idle");
+      return undefined;
+    }
+
+    setBalanceState("loading");
+    return subscribeDailyBalance(defaultApiKey, merchantId.trim(), operationDate, {
+      onMessage: (streamMessage) => {
+        if (streamMessage.status === "pending") {
+          setDailyBalance(null);
+          setBalanceState("pending");
+          return;
+        }
+
+        setDailyBalance({
+          merchant_id: streamMessage.merchant_id,
+          date: streamMessage.date,
+          total_credit: streamMessage.total_credit,
+          total_debit: streamMessage.total_debit,
+          balance: streamMessage.balance,
+        });
+        setBalanceState("available");
+      },
+      onError: (error) => {
+        setBalanceState("error");
+        setMessage({ tone: "error", text: errorMessage(error) });
+      },
+    });
+  }, [hasProtectedContext, merchantId, operationDate]);
 
   async function refreshTransactions() {
     if (!hasProtectedContext) return;

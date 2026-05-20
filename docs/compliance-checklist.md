@@ -6,6 +6,7 @@ Este checklist mapeia cada requisito do avaliador para evidencia objetiva no rep
 | --- | --- | --- |
 | Servico de controle de lancamentos | Atendido | `POST /transactions`, `GET /transactions`, `src/transactions/` |
 | Servico do consolidado diario | Atendido | `GET /daily-balances/{date}`, `src/consolidation/`, `src/consolidation/worker.py` |
+| Resumo diario em tempo real no portal | Atendido | `GET /daily-balances/{date}/stream`, `frontend/src/api/client.ts`, `frontend/src/App.tsx` |
 | Mapeamento de dominios funcionais | Atendido | `docs/domains.md` |
 | Capacidades de negocio | Atendido | `docs/domains.md`, `docs/architecture.md` |
 | Requisitos funcionais e nao funcionais | Atendido | `docs/requirements.md` |

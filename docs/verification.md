@@ -19,7 +19,26 @@ PATH=.venv/bin:$PATH pytest -q
 Resultado:
 
 ```text
-16 passed
+19 passed
+```
+
+Cobertura relevante adicionada para realtime:
+
+- `GET /daily-balances/{date}/stream` emite evento SSE `daily_balance`.
+- O portal atualiza o `Resumo do dia` a partir do stream sem acionamento manual.
+
+Testes do front-end:
+
+```bash
+npm --prefix frontend test
+npm --prefix frontend run build
+```
+
+Resultado:
+
+```text
+7 passed
+vite build completed successfully
 ```
 
 ## Migrations

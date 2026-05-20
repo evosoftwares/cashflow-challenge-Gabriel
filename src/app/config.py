@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     api_key: str = "local-dev-key"
     queue_name: str = "transaction.created"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    realtime_poll_interval_seconds: float = 2.0
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

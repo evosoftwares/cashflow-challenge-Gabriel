@@ -18,10 +18,36 @@ const jsonResponse = (status: number, body: unknown): MockResponse => ({
 
 const healthResponse = () => jsonResponse(200, { status: "ok" });
 
-function mockFetch(handler: (input: RequestInfo | URL, init?: RequestInit) => MockResponse) {
-  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
-    Promise.resolve(handler(input, init)),
+const streamResponse = (messages: string[]) =>
+  new Response(
+    new ReadableStream({
+      start(controller) {
+        const encoder = new TextEncoder();
+        for (const message of messages) {
+          controller.enqueue(encoder.encode(message));
+        }
+        controller.close();
+      },
+    }),
+    {
+      headers: {
+        "Content-Type": "text/event-stream",
+      },
+      status: 200,
+    },
   );
+
+function mockFetch(handler: (input: RequestInfo | URL, init?: RequestInit) => MockResponse | Response) {
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    try {
+      return Promise.resolve(handler(input, init));
+    } catch (error) {
+      if (String(input).includes("/daily-balances/") && String(input).includes("/stream")) {
+        return Promise.resolve(streamResponse(['event: daily_balance\ndata: {"status":"pending"}\n\n']));
+      }
+      throw error;
+    }
+  });
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
@@ -142,6 +168,28 @@ describe("Cash Flow operational portal", () => {
     expect(screen.getByText("R$ 300,00")).toBeInTheDocument();
     expect(screen.getByText("R$ 80,00")).toBeInTheDocument();
     expect(screen.getAllByText("R$ 220,00").length).toBeGreaterThanOrEqual(1);
+  });
+
+  test("updates the daily summary from realtime stream without manual refresh", async () => {
+    mockFetch((input) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return healthResponse();
+      if (url.includes("/daily-balances/2026-05-20/stream")) {
+        return streamResponse([
+          'event: daily_balance\ndata: {"status":"available","merchant_id":"8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11","date":"2026-05-20","total_credit":"120.00","total_debit":"20.00","balance":"100.00"}\n\n',
+        ]);
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+    await fillOperationContext(user);
+
+    expect(await screen.findByText("Saldo atualizado")).toBeInTheDocument();
+    expect(screen.getByText("R$ 120,00")).toBeInTheDocument();
+    expect(screen.getByText("R$ 20,00")).toBeInTheDocument();
+    expect(screen.getAllByText("R$ 100,00").length).toBeGreaterThanOrEqual(1);
   });
 
   test("lists transactions returned by the API", async () => {

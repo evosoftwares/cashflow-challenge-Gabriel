@@ -27,6 +27,7 @@ flowchart TD
     OUTBOX -->|Publica eventos de lançamento| MQ[RabbitMQ]
     MQ -->|Entrega eventos| WORKER[Worker de Consolidação]
     WORKER -->|Atualiza saldo diário| DB
+    SYSTEM -->|Envia atualização realtime do saldo| UI
 ```
 
 ## Arquitetura alvo da solução
@@ -59,6 +60,7 @@ flowchart TD
     WORKER[Consolidation Worker]
     CLIENT -->|Usa portal| UI
     UI -->|HTTP Request| API
+    UI -->|SSE Daily Balance Stream| API
     API --> TRoutes
     TRoutes --> TService
     TService --> TRepo
@@ -153,6 +155,29 @@ Se o worker de consolidação estiver indisponível:
 2. O evento fica em `outbox_events` até ser publicado.
 3. A mensagem fica na fila RabbitMQ se o worker estiver parado.
 4. Quando o worker volta, a mensagem é processada.
+
+## Atualização realtime do resumo diário
+
+O portal operacional mantém o painel `Resumo do dia` sincronizado por Server-Sent Events no endpoint `GET /daily-balances/{date}/stream`.
+
+Essa escolha mantém a solução simples: a API consulta o consolidado em intervalo configurável, emite evento apenas quando o payload muda e preserva a API Key no header HTTP. Não foi adotado WebSocket nem Supabase Realtime porque o requisito é atualização unidirecional do consolidado para a tela.
+
+```mermaid
+sequenceDiagram
+    actor User as Operador
+    participant UI as Portal React
+    participant API as FastAPI
+    participant DB as PostgreSQL
+    participant Worker as Worker de Consolidação
+    User->>UI: Seleciona comerciante e data
+    UI->>API: GET /daily-balances/{date}/stream
+    API->>DB: Consulta daily_balances
+    API-->>UI: event daily_balance pending/available
+    Worker->>DB: Atualiza daily_balances após evento
+    API->>DB: Consulta novamente no intervalo configurado
+    API-->>UI: event daily_balance com novo saldo
+    UI-->>User: Resumo do dia atualizado automaticamente
+```
 
 ## Diagrama de domínios e capacidades
 

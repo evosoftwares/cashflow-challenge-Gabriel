@@ -30,6 +30,7 @@ flowchart TD
     BAL[Módulo de Consolidação]
     CLIENT -->|Usa portal| UI
     UI -->|POST /transactions| API
+    UI -->|SSE /daily-balances/date/stream| API
     API --> TX
     TX -->|Salva lançamento| DB
     TX -->|Registra evento| OUTBOX
@@ -62,6 +63,7 @@ Fluxo principal:
 - Worker assíncrono para processar o saldo diário.
 - Outbox Pattern para evitar perda de evento entre banco e RabbitMQ.
 - Upsert atômico no consolidado diário para reduzir risco de concorrência.
+- Atualização em tempo real do resumo diário via Server-Sent Events.
 - Alembic para versionar o schema do banco.
 - API Key simples para proteger endpoints no escopo do desafio.
 - Portal operacional React para demonstrar criação, listagem e consulta do consolidado.
@@ -73,6 +75,7 @@ Os ADRs estão em `docs/adr/`.
 
 - Controle de lançamentos: `POST /transactions` e `GET /transactions`.
 - Consolidado diário: `GET /daily-balances/{date}`.
+- Resumo diário em tempo real: `GET /daily-balances/{date}/stream`.
 - Portal operacional: `frontend/`.
 - Domínios e capacidades: `docs/domains.md`.
 - Requisitos funcionais e não funcionais: `docs/requirements.md`.
@@ -108,11 +111,7 @@ Swagger/OpenAPI: http://localhost:8000/docs
 RabbitMQ Management: http://localhost:15672
 ```
 
-No portal, use a API Key local:
-
-```text
-local-dev-key
-```
+O portal usa a chave local configurada por variável de ambiente para consumir a API sem expor esse campo ao operador.
 
 Para executar a migration manualmente:
 
@@ -320,6 +319,22 @@ Resposta esperada após consolidação:
 ```
 
 Os valores monetários são serializados como strings decimais para preservar precisão ponta a ponta. No banco e nos cálculos, a solução usa `NUMERIC(14, 2)`/`Decimal`, não ponto flutuante.
+
+### GET /daily-balances/{date}/stream
+
+Stream SSE usado pelo portal para manter o resumo do dia atualizado automaticamente.
+
+```bash
+curl -N -H "X-API-Key: local-dev-key" \
+  "http://localhost:8000/daily-balances/2026-05-20/stream?merchant_id=8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11"
+```
+
+Evento:
+
+```text
+event: daily_balance
+data: {"status":"available","merchant_id":"8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11","date":"2026-05-20","total_credit":"300.00","total_debit":"80.00","balance":"220.00"}
+```
 
 ## Segurança
 

@@ -34,6 +34,12 @@ export type DailyBalance = {
   balance: string;
 };
 
+export type DailyBalanceStreamMessage =
+  | { status: "pending" }
+  | ({
+      status: "available";
+    } & DailyBalance);
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -111,4 +117,72 @@ export async function getDailyBalance(
       "X-API-Key": apiKey,
     },
   });
+}
+
+function parseSseMessages(buffer: string): {
+  messages: DailyBalanceStreamMessage[];
+  remainingBuffer: string;
+} {
+  const blocks = buffer.split("\n\n");
+  const remainingBuffer = blocks.pop() ?? "";
+  const messages = blocks.flatMap((block) => {
+    const dataLine = block.split("\n").find((line) => line.startsWith("data: "));
+    if (!dataLine) return [];
+    return [JSON.parse(dataLine.slice("data: ".length)) as DailyBalanceStreamMessage];
+  });
+
+  return { messages, remainingBuffer };
+}
+
+export function subscribeDailyBalance(
+  apiKey: string,
+  merchantId: string,
+  date: string,
+  handlers: {
+    onMessage: (message: DailyBalanceStreamMessage) => void;
+    onError: (error: unknown) => void;
+  },
+): () => void {
+  const controller = new AbortController();
+
+  void (async () => {
+    try {
+      const params = new URLSearchParams({ merchant_id: merchantId });
+      const response = await fetch(`${API_BASE_URL}/daily-balances/${date}/stream?${params.toString()}`, {
+        headers: {
+          "X-API-Key": apiKey,
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw await parseError(response);
+      }
+      if (!response.body) {
+        throw new ApiError("Atualização em tempo real indisponível.", 0);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parsed = parseSseMessages(buffer);
+        buffer = parsed.remainingBuffer;
+        for (const message of parsed.messages) {
+          handlers.onMessage(message);
+        }
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        handlers.onError(error);
+      }
+    }
+  })();
+
+  return () => controller.abort();
 }
