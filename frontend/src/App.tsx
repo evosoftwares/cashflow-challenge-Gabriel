@@ -83,7 +83,7 @@ export default function App() {
   );
   const canCreate = hasProtectedContext && amount.trim().length > 0 && occurredAt.trim().length > 0;
   const selectedStoreName =
-    merchantId === defaultMerchantId ? "Loja Carrefour - Demonstração" : "Loja de teste local";
+    merchantId === defaultMerchantId ? "Mercado do Bairro - Demonstração" : "Loja de teste local";
 
   useEffect(() => {
     if (!hasProtectedContext) {

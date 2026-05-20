@@ -84,11 +84,11 @@ describe("Cash Flow operational portal", () => {
 
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "Carrefour Fluxo de Caixa" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Mercado do Bairro Fluxo de Caixa" })).toBeInTheDocument();
     expect(await screen.findByText("API conectada")).toBeInTheDocument();
     expect(screen.getByText("API local localhost:8000")).toBeInTheDocument();
     expect(screen.queryByText("Chave de acesso")).not.toBeInTheDocument();
-    expect(screen.getByText("Loja Carrefour - Demonstração")).toBeInTheDocument();
+    expect(screen.getByText("Mercado do Bairro - Demonstração")).toBeInTheDocument();
     expect(screen.getByText("Pronto para usar")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Atualizar movimentações" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Atualizar resumo do dia" })).toBeEnabled();
