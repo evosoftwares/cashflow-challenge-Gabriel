@@ -28,6 +28,8 @@ RNF06 - A solução deve evitar duplicidade no processamento de eventos.
 
 RNF07 - A solução deve ter execução local via Docker Compose.
 
+RNF08 - O schema do banco deve ser versionado por migration Alembic.
+
 ## Critério sênior
 
 A solução prioriza simplicidade operacional, separação de responsabilidades e desacoplamento assíncrono, evitando complexidade desnecessária para o tamanho do domínio.
@@ -37,3 +39,5 @@ A solução prioriza simplicidade operacional, separação de responsabilidades 
 O requisito de disponibilidade do controle de lançamentos é atendido ao salvar a transação no PostgreSQL e publicar uma mensagem durável no RabbitMQ. A consolidação acontece em um worker separado, portanto a parada do worker não impede o endpoint `POST /transactions`.
 
 O requisito de 50 requisições por segundo para consulta do consolidado é coberto por um script k6 em `tests/load/daily_balance_50rps.js`, com threshold `http_req_failed < 5%`.
+
+O requisito de versionamento de schema é atendido por Alembic em `src/database/alembic/versions`.

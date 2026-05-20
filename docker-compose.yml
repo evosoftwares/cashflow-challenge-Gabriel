@@ -10,8 +10,8 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
 
@@ -24,9 +24,21 @@ services:
       API_KEY: local-dev-key
       QUEUE_NAME: transaction.created
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       rabbitmq:
+        condition: service_healthy
+
+  migrate:
+    build: .
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: postgresql+psycopg://cashflow:cashflow@postgres:5432/cashflow
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      API_KEY: local-dev-key
+      QUEUE_NAME: transaction.created
+    depends_on:
+      postgres:
         condition: service_healthy
 
   postgres:

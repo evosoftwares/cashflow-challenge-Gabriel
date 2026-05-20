@@ -54,6 +54,7 @@ Fluxo principal:
 - PostgreSQL para consistência e integridade transacional.
 - RabbitMQ para desacoplar lançamento e consolidação.
 - Worker assíncrono para processar o saldo diário.
+- Alembic para versionar o schema do banco.
 - API Key simples para proteger endpoints no escopo do desafio.
 - Logs estruturados básicos e healthcheck.
 
@@ -71,6 +72,8 @@ Os ADRs estão em `docs/adr/`.
 - Observabilidade: `docs/observability.md`.
 - Custos: `docs/costs.md`.
 - Arquitetura de transição: `docs/transition-architecture.md`.
+- Evidências de verificação: `docs/verification.md`.
+- Migração versionada com Alembic: `src/database/alembic/versions/`.
 - Testes unitários, integração leve e carga.
 
 ## Como rodar localmente
@@ -80,6 +83,14 @@ git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
 cd cashflow-challenge-Gabriel
 cp .env.example .env
 docker compose up --build
+```
+
+O serviço `migrate` executa `alembic upgrade head` automaticamente antes da API e do worker.
+
+Para executar a migration manualmente:
+
+```bash
+make migrate
 ```
 
 Healthcheck:
@@ -162,6 +173,10 @@ make load-test
 ```
 
 O script `tests/load/daily_balance_50rps.js` executa 50 requisições por segundo por 1 minuto no endpoint de consolidado diário e aceita no máximo 5% de falha.
+
+## Banco remoto
+
+Esta entrega usa PostgreSQL local via Docker Compose. As credenciais Supabase compartilhadas fora do repositório não foram usadas nem versionadas, porque o enunciado pede execução local e documentação no GitHub. Caso seja necessário validar em Supabase, o próximo passo é aplicar a migration Alembic usando uma `DATABASE_URL` remota segura, fora do código-fonte.
 
 ## Endpoints
 

@@ -1,10 +1,13 @@
-.PHONY: up down test load-test logs stop-worker start-worker
+.PHONY: up down migrate test load-test logs stop-worker start-worker
 
 up:
 	docker compose up --build
 
 down:
 	docker compose down
+
+migrate:
+	docker compose run --rm migrate
 
 test:
 	pytest

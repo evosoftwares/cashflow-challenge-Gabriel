@@ -56,6 +56,14 @@ Armazena a visão consolidada por comerciante e data. A restrição única em `m
 
 Armazena os `event_id` já processados pelo worker. Essa tabela garante idempotência quando o RabbitMQ reentrega uma mensagem.
 
+## Migrations
+
+O schema é versionado com Alembic. No Docker Compose, o serviço `migrate` executa `alembic upgrade head` antes da API e do worker.
+
+## Banco remoto
+
+Supabase não foi usado nesta entrega. A arquitetura alvo usa PostgreSQL e a execução local usa o PostgreSQL do Docker Compose. Como evolução operacional, a mesma migration Alembic pode ser aplicada em um PostgreSQL gerenciado, incluindo Supabase, desde que a `DATABASE_URL` remota seja fornecida por variável de ambiente segura.
+
 ## Trade-offs
 
 A arquitetura modular evita a complexidade operacional de microsserviços para um domínio pequeno, mas mantém fronteiras claras para uma extração futura.

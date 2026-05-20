@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Cash flow challenge with modular FastAPI, PostgreSQL, RabbitMQ and asynchronous daily consolidation."
 requires-python = ">=3.11"
 dependencies = [
+    "alembic>=1.14.0",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
     "sqlalchemy>=2.0.30",
