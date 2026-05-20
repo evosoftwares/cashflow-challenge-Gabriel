@@ -1,4 +1,4 @@
-.PHONY: up down migrate test load-test logs stop-worker start-worker
+.PHONY: up down migrate test docker-e2e load-test logs stop-worker start-worker
 
 up:
 	docker compose up --build
@@ -11,6 +11,9 @@ migrate:
 
 test:
 	pytest
+
+docker-e2e:
+	bash tests/integration/docker_e2e.sh
 
 load-test:
 	k6 run tests/load/daily_balance_50rps.js

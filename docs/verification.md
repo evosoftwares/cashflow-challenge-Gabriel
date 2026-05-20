@@ -19,7 +19,7 @@ PATH=.venv/bin:$PATH pytest -q
 Resultado:
 
 ```text
-12 passed
+14 passed
 ```
 
 ## Migrations
@@ -43,15 +43,23 @@ No Docker Compose, a tabela `alembic_version` retornou:
 202605200001
 ```
 
-## Validacao end-to-end
+## Validacao end-to-end Docker
 
 Comando:
 
 ```bash
-docker compose up --build -d
+make docker-e2e
 ```
 
-Healthcheck:
+O script reseta o ambiente local do Docker Compose, executa migrations, valida API, PostgreSQL, RabbitMQ, worker e resiliencia com worker parado.
+
+Resultado:
+
+```text
+Docker E2E passed.
+```
+
+Healthcheck validado pelo script:
 
 ```bash
 curl http://localhost:8000/health
@@ -63,11 +71,16 @@ Resultado:
 {"status":"ok"}
 ```
 
-Fluxo validado:
+Fluxo validado pelo script:
 
 1. `POST /transactions` com `CREDIT 120.00`.
 2. `POST /transactions` com `DEBIT 40.00`.
 3. `GET /daily-balances/2026-05-20`.
+4. `docker compose stop worker`.
+5. `POST /transactions` com worker parado retorna `201 Created`.
+6. RabbitMQ mantem uma mensagem pendente.
+7. `docker compose start worker`.
+8. Worker consome a mensagem pendente e atualiza o saldo.
 
 Resultado do consolidado:
 
@@ -81,12 +94,13 @@ Resultado do consolidado:
 }
 ```
 
-## Teste de resiliencia
+## Resultado do teste de resiliencia
 
-Comando:
+Comandos cobertos por `make docker-e2e`:
 
 ```bash
 docker compose stop worker
+docker compose start worker
 ```
 
 Com o worker parado, `POST /transactions` continuou retornando `201 Created`.
@@ -95,12 +109,6 @@ Antes de reiniciar o worker, a fila tinha uma mensagem pendente:
 
 ```text
 transaction.created 1 0
-```
-
-Depois:
-
-```bash
-docker compose start worker
 ```
 
 O saldo foi atualizado para:
@@ -132,9 +140,13 @@ k6 run tests/load/daily_balance_50rps.js
 Resultado:
 
 ```text
-http_reqs......................: 3001   50.011007/s
+http_reqs......................: 3001   50.008731/s
 http_req_failed................: 0.00%
 checks_succeeded...............: 100.00% 3001 out of 3001
 ```
 
 O resultado atende ao requisito de 50 requisicoes por segundo com falha inferior a 5%.
+
+## Checklist de aderencia
+
+O arquivo `docs/compliance-checklist.md` mapeia cada requisito do avaliador para a evidencia correspondente no repositorio.

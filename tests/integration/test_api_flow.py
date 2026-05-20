@@ -43,7 +43,6 @@ def app_context():
         settings=settings,
         session_factory=SessionLocal,
         publisher=publisher,
-        initialize_database=False,
     )
     yield TestClient(app), SessionLocal, publisher
 

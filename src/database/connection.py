@@ -20,11 +20,6 @@ def import_models() -> None:
     from src.transactions import models as transaction_models  # noqa: F401
 
 
-def init_db() -> None:
-    import_models()
-    Base.metadata.create_all(bind=engine)
-
-
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:

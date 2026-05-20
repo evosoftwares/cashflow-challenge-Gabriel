@@ -2,7 +2,7 @@ import logging
 
 from src.app.config import get_settings
 from src.consolidation.service import apply_transaction_created_event
-from src.database.connection import SessionLocal, init_db
+from src.database.connection import SessionLocal
 from src.messaging.consumer import RabbitMQConsumer
 
 logging.basicConfig(level=logging.INFO)
@@ -15,7 +15,6 @@ def handle_event(event: dict[str, str]) -> str:
 
 
 def main() -> None:
-    init_db()
     settings = get_settings()
     consumer = RabbitMQConsumer(settings, handle_event)
     consumer.start()

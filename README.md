@@ -71,6 +71,7 @@ Os ADRs estão em `docs/adr/`.
 - Observabilidade: `docs/observability.md`.
 - Custos: `docs/costs.md`.
 - Arquitetura de transição: `docs/transition-architecture.md`.
+- Checklist de aderência ao desafio: `docs/compliance-checklist.md`.
 - Evidências de verificação: `docs/verification.md`.
 - Migração versionada com Alembic: `src/database/alembic/versions/`.
 - Testes unitários, integração leve e carga.
@@ -122,6 +123,14 @@ Também é possível rodar diretamente:
 ```bash
 pytest
 ```
+
+Para validar o fluxo real com Docker Compose, PostgreSQL, RabbitMQ e worker:
+
+```bash
+make docker-e2e
+```
+
+Esse teste reseta o ambiente local do Compose, cria lançamentos, valida consolidação, para o worker, confirma que `POST /transactions` continua retornando `201 Created`, verifica mensagem pendente na fila e religa o worker para processar o saldo.
 
 ## Como executar teste de resiliência
 
@@ -175,7 +184,7 @@ O script `tests/load/daily_balance_50rps.js` executa 50 requisições por segund
 
 ## Banco remoto
 
-Esta entrega usa PostgreSQL local via Docker Compose. As credenciais Supabase compartilhadas fora do repositório não foram usadas nem versionadas, porque o enunciado pede execução local e documentação no GitHub. Caso seja necessário validar em Supabase, o próximo passo é aplicar a migration Alembic usando uma `DATABASE_URL` remota segura, fora do código-fonte.
+Esta entrega usa PostgreSQL local via Docker Compose como caminho oficial de execução. Supabase não é requisito do desafio; ele pode ser usado futuramente apenas como PostgreSQL gerenciado. As credenciais Supabase compartilhadas fora do repositório não foram versionadas. Caso seja necessário validar em Supabase, o próximo passo é aplicar a migration Alembic usando uma `DATABASE_URL` remota segura, fora do código-fonte.
 
 ## Endpoints
 
