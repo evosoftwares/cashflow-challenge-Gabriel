@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from src.app.config import Settings, get_settings
@@ -22,6 +23,13 @@ def create_app(
         title="Cash Flow Architecture Challenge",
         version="0.1.0",
         description="Modular cash flow API with asynchronous daily consolidation.",
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "X-API-Key"],
     )
 
     app.include_router(health_router)

@@ -4,6 +4,8 @@
 
 A solução foi desenhada como uma arquitetura modular orientada a eventos.
 
+Além da API, a entrega possui um portal operacional em React para materializar a jornada do comerciante. Esse front-end é uma camada de apresentação e não altera os domínios centrais da solução.
+
 O domínio de Lançamentos é responsável por registrar movimentações financeiras.
 
 O domínio de Consolidação é responsável por calcular e disponibilizar o saldo diário.
@@ -15,9 +17,11 @@ A comunicação entre os dois ocorre de forma assíncrona via RabbitMQ, garantin
 ```mermaid
 flowchart TD
     USER[Comerciante / Operador]
+    UI[Portal Operacional React]
     SYSTEM[Cash Flow System<br/>Controle de Fluxo de Caixa Diário]
-    USER -->|Registra créditos e débitos| SYSTEM
-    USER -->|Consulta saldo diário consolidado| SYSTEM
+    USER -->|Registra créditos e débitos| UI
+    USER -->|Consulta saldo diário consolidado| UI
+    UI -->|Consome API HTTP| SYSTEM
     SYSTEM -->|Persiste lançamentos| DB[(PostgreSQL)]
     SYSTEM -->|Registra eventos pendentes| OUTBOX[(Outbox Events)]
     OUTBOX -->|Publica eventos de lançamento| MQ[RabbitMQ]
@@ -30,6 +34,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     CLIENT[Cliente / Usuário]
+    UI[React Operational Portal]
     subgraph APP[FastAPI Application - Monólito Modular]
         API[API Layer]
         subgraph TRANSACTIONS[Módulo de Lançamentos]
@@ -52,7 +57,8 @@ flowchart TD
     DISPATCHER[Outbox Dispatcher]
     MQ[RabbitMQ<br/>Queue: transaction.created]
     WORKER[Consolidation Worker]
-    CLIENT -->|HTTP Request| API
+    CLIENT -->|Usa portal| UI
+    UI -->|HTTP Request| API
     API --> TRoutes
     TRoutes --> TService
     TService --> TRepo

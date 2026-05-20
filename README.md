@@ -19,6 +19,7 @@ A escolha por monólito modular evita complexidade operacional desnecessária, m
 ```mermaid
 flowchart TD
     CLIENT[Cliente]
+    UI[Portal Operacional React]
     API[FastAPI<br/>Arquitetura Modular]
     TX[Módulo de Lançamentos]
     OUTBOX[(Outbox Events)]
@@ -27,7 +28,8 @@ flowchart TD
     MQ[RabbitMQ<br/>transaction.created]
     WORKER[Worker de Consolidação]
     BAL[Módulo de Consolidação]
-    CLIENT -->|POST /transactions| API
+    CLIENT -->|Usa portal| UI
+    UI -->|POST /transactions| API
     API --> TX
     TX -->|Salva lançamento| DB
     TX -->|Registra evento| OUTBOX
@@ -36,7 +38,7 @@ flowchart TD
     MQ --> WORKER
     WORKER --> BAL
     BAL -->|Upsert atômico no saldo diário| DB
-    CLIENT -->|GET /daily-balances/date| API
+    UI -->|GET /daily-balances/date| API
     API --> BAL
     BAL -->|Consulta saldo| DB
 ```
@@ -62,6 +64,7 @@ Fluxo principal:
 - Upsert atômico no consolidado diário para reduzir risco de concorrência.
 - Alembic para versionar o schema do banco.
 - API Key simples para proteger endpoints no escopo do desafio.
+- Portal operacional React para demonstrar criação, listagem e consulta do consolidado.
 - Logs estruturados básicos e healthcheck.
 
 Os ADRs estão em `docs/adr/`.
@@ -70,6 +73,7 @@ Os ADRs estão em `docs/adr/`.
 
 - Controle de lançamentos: `POST /transactions` e `GET /transactions`.
 - Consolidado diário: `GET /daily-balances/{date}`.
+- Portal operacional: `frontend/`.
 - Domínios e capacidades: `docs/domains.md`.
 - Requisitos funcionais e não funcionais: `docs/requirements.md`.
 - Arquitetura alvo: `docs/architecture.md`.
@@ -94,6 +98,21 @@ docker compose up --build
 ```
 
 O serviço `migrate` executa `alembic upgrade head` automaticamente antes da API, do worker e do dispatcher de Outbox.
+
+URLs locais:
+
+```text
+Portal operacional: http://localhost:5173
+API: http://localhost:8000
+Swagger/OpenAPI: http://localhost:8000/docs
+RabbitMQ Management: http://localhost:15672
+```
+
+No portal, use a API Key local:
+
+```text
+local-dev-key
+```
 
 Para executar a migration manualmente:
 
@@ -124,6 +143,14 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 make test
+```
+
+Testes do front-end:
+
+```bash
+make frontend-install
+make frontend-test
+make frontend-build
 ```
 
 Também é possível rodar diretamente:

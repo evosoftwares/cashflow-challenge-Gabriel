@@ -46,11 +46,15 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     scalability = Path("docs/scalability.md")
     docker_e2e = Path("tests/integration/docker_e2e.sh")
     overload_docs = Path("docs/overload-tests.md")
+    frontend_package = Path("frontend/package.json")
+    frontend_app = Path("frontend/src/App.tsx")
 
     assert compliance.is_file()
     assert scalability.is_file()
     assert docker_e2e.is_file()
     assert overload_docs.is_file()
+    assert frontend_package.is_file()
+    assert frontend_app.is_file()
 
     compliance_text = compliance.read_text()
     assert "Requisito do avaliador" in compliance_text
@@ -79,6 +83,9 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     assert "Overload de leitura" in overload_text
     assert "worker parado" in overload_text
     assert "transaction.created 500 0" in overload_text
+    assert "Interface operacional para demonstracao" in compliance_text
+    readme_text = Path("README.md").read_text()
+    assert "Portal operacional" in readme_text
 
 
 def test_overload_worker_script_restarts_worker_on_failure():

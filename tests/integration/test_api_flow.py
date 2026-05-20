@@ -155,3 +155,20 @@ def test_protected_endpoints_require_api_key(app_context):
     )
 
     assert response.status_code == 401
+
+
+def test_cors_allows_frontend_origin(app_context):
+    client, _ = app_context
+
+    response = client.options(
+        "/transactions",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "X-API-Key,Content-Type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert "X-API-Key" in response.headers["access-control-allow-headers"]

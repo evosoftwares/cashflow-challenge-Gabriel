@@ -1,4 +1,4 @@
-.PHONY: up down migrate test docker-e2e load-test overload-read overload-worker logs stop-worker start-worker
+.PHONY: up down migrate test docker-e2e load-test overload-read overload-worker frontend-install frontend-test frontend-build frontend-dev logs stop-worker start-worker
 
 up:
 	docker compose up --build
@@ -23,6 +23,18 @@ overload-read:
 
 overload-worker:
 	bash tests/load/overload_worker_backlog.sh
+
+frontend-install:
+	npm --prefix frontend install
+
+frontend-test:
+	npm --prefix frontend test
+
+frontend-build:
+	npm --prefix frontend run build
+
+frontend-dev:
+	npm --prefix frontend run dev -- --host 0.0.0.0
 
 logs:
 	docker compose logs -f
