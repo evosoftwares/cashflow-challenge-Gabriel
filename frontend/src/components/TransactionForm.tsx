@@ -1,3 +1,5 @@
+import { ArrowDownRight, ArrowUpRight, PlusCircle } from "lucide-react";
+
 import type { TransactionType } from "../api/client";
 
 type TransactionFormProps = {
@@ -31,8 +33,8 @@ export function TransactionForm({
     <section className="panel transaction-form" aria-labelledby="transaction-form-title">
       <div className="panel-header">
         <div>
-          <h2 id="transaction-form-title">Novo lançamento</h2>
-          <p>Registre créditos e débitos do comerciante selecionado.</p>
+          <h2 id="transaction-form-title">Nova movimentação</h2>
+          <p>Informe uma entrada ou saída do comerciante.</p>
         </div>
       </div>
 
@@ -43,13 +45,29 @@ export function TransactionForm({
           onSubmit();
         }}
       >
-        <label className="field">
-          <span>Tipo</span>
-          <select value={type} onChange={(event) => onTypeChange(event.target.value as TransactionType)}>
-            <option value="CREDIT">Crédito</option>
-            <option value="DEBIT">Débito</option>
-          </select>
-        </label>
+        <fieldset className="transaction-type-group">
+          <legend>Tipo</legend>
+          <div className="segmented-control" role="group" aria-label="Tipo">
+            <button
+              aria-pressed={type === "CREDIT"}
+              className={type === "CREDIT" ? "segmented-control__option is-active" : "segmented-control__option"}
+              onClick={() => onTypeChange("CREDIT")}
+              type="button"
+            >
+              <ArrowUpRight size={16} strokeWidth={2.3} aria-hidden="true" />
+              Entrada
+            </button>
+            <button
+              aria-pressed={type === "DEBIT"}
+              className={type === "DEBIT" ? "segmented-control__option is-active" : "segmented-control__option"}
+              onClick={() => onTypeChange("DEBIT")}
+              type="button"
+            >
+              <ArrowDownRight size={16} strokeWidth={2.3} aria-hidden="true" />
+              Saída
+            </button>
+          </div>
+        </fieldset>
 
         <label className="field">
           <span>Valor</span>
@@ -65,13 +83,19 @@ export function TransactionForm({
         </label>
 
         <label className="field">
-          <span>Data/hora do lançamento</span>
-          <input type="datetime-local" value={occurredAt} onChange={(event) => onOccurredAtChange(event.target.value)} />
+          <span>Quando aconteceu</span>
+          <input
+            aria-label="Quando aconteceu"
+            type="datetime-local"
+            value={occurredAt}
+            onChange={(event) => onOccurredAtChange(event.target.value)}
+          />
         </label>
 
         <label className="field field--wide">
-          <span>Descrição</span>
+          <span>Descrição simples</span>
           <input
+            aria-label="Descrição simples"
             maxLength={255}
             type="text"
             value={description}
@@ -82,7 +106,8 @@ export function TransactionForm({
 
         <div className="form-actions">
           <button className="button button--primary" disabled={disabled || submitting} type="submit">
-            {submitting ? "Registrando..." : "Registrar lançamento"}
+            <PlusCircle size={17} strokeWidth={2.4} aria-hidden="true" />
+            {submitting ? "Salvando..." : "Salvar movimentação"}
           </button>
         </div>
       </form>

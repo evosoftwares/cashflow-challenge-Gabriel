@@ -128,7 +128,7 @@ export default function App() {
       setAmount("");
       setDescription("");
       await Promise.all([refreshTransactions(), refreshDailyBalance()]);
-      setMessage({ tone: "success", text: "Lançamento criado com sucesso." });
+      setMessage({ tone: "success", text: "Movimentação salva com sucesso." });
     } catch (error) {
       setMessage({ tone: "error", text: errorMessage(error) });
     } finally {
@@ -148,15 +148,21 @@ export default function App() {
       <ApiSettings apiKey={apiKey} apiStatus={apiStatus} onApiKeyChange={setApiKey} />
 
       <section className="operation-context" aria-labelledby="operation-context-title">
-        <div>
-          <h2 id="operation-context-title">Contexto de operação</h2>
-          <p>Defina o comerciante e a data usados nas consultas e lançamentos.</p>
+        <div className="operation-context__intro">
+          <div>
+            <h2 id="operation-context-title">Dados para consulta</h2>
+            <p>Escolha o comerciante e a data.</p>
+          </div>
+          <span className={hasProtectedContext ? "context-state context-state--ready" : "context-state"}>
+            <span className="status-dot" aria-hidden="true" />
+            {hasProtectedContext ? "Pronto para usar" : "Faltam dados"}
+          </span>
         </div>
         <div className="context-grid">
           <label className="field">
-            <span>Merchant ID</span>
+            <span>Comerciante</span>
             <input
-              aria-label="Merchant ID"
+              aria-label="Comerciante"
               type="text"
               value={merchantId}
               onChange={(event) => setMerchantId(event.target.value)}
@@ -164,16 +170,21 @@ export default function App() {
             />
           </label>
           <label className="field">
-            <span>Data de operação</span>
+            <span>Data</span>
             <input
-              aria-label="Data de operação"
+              aria-label="Data"
               type="date"
               value={operationDate}
               onChange={(event) => setOperationDate(event.target.value)}
             />
           </label>
-          <button className="button button--secondary context-grid__button" onClick={generateMerchantId} type="button">
-            Gerar merchant
+          <button
+            aria-label="Criar comerciante de teste"
+            className="button button--secondary context-grid__button"
+            onClick={generateMerchantId}
+            type="button"
+          >
+            Criar teste
           </button>
         </div>
       </section>
@@ -198,6 +209,7 @@ export default function App() {
         <DailyBalancePanel
           balance={dailyBalance}
           disabled={!hasProtectedContext}
+          date={operationDate}
           state={balanceState}
           onRefresh={refreshDailyBalance}
         />

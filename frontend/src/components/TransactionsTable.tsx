@@ -1,3 +1,5 @@
+import { RefreshCw } from "lucide-react";
+
 import type { TransactionListItem } from "../api/client";
 
 type TransactionsTableProps = {
@@ -22,24 +24,33 @@ function formatDateTime(value: string): string {
 }
 
 function formatType(value: TransactionListItem["type"]) {
-  return value === "CREDIT" ? "Crédito" : "Débito";
+  return value === "CREDIT" ? "Entrada" : "Saída";
 }
 
 export function TransactionsTable({ transactions, disabled, loading, onRefresh }: TransactionsTableProps) {
+  const counterLabel = transactions.length === 1 ? "1 movimentação" : `${transactions.length} movimentações`;
+
   return (
     <section className="panel transactions-panel" aria-labelledby="transactions-title">
       <div className="panel-header panel-header--row">
         <div>
-          <h2 id="transactions-title">Lançamentos</h2>
-          <p>Movimentações registradas para o comerciante e data selecionados.</p>
+          <h2 id="transactions-title">Movimentações do dia</h2>
+          <p>{counterLabel} na data selecionada</p>
         </div>
-        <button className="button button--secondary" disabled={disabled || loading} onClick={onRefresh} type="button">
-          {loading ? "Atualizando..." : "Atualizar lançamentos"}
+        <button
+          aria-label="Atualizar movimentações"
+          className="button button--secondary"
+          disabled={disabled || loading}
+          onClick={onRefresh}
+          type="button"
+        >
+          <RefreshCw size={16} strokeWidth={2.2} aria-hidden="true" />
+          {loading ? "Atualizando..." : "Atualizar"}
         </button>
       </div>
 
       <div className="table-wrap">
-        <table aria-label="Lançamentos financeiros">
+        <table aria-label="Movimentações financeiras">
           <thead>
             <tr>
               <th>Tipo</th>
@@ -53,7 +64,7 @@ export function TransactionsTable({ transactions, disabled, loading, onRefresh }
             {transactions.length === 0 ? (
               <tr>
                 <td className="empty-row" colSpan={5}>
-                  Nenhum lançamento carregado.
+                  Nenhuma movimentação nesta data.
                 </td>
               </tr>
             ) : (
@@ -64,7 +75,7 @@ export function TransactionsTable({ transactions, disabled, loading, onRefresh }
                       {formatType(transaction.type)}
                     </span>
                   </td>
-                  <td>{formatCurrency(transaction.amount)}</td>
+                  <td className="amount-cell">{formatCurrency(transaction.amount)}</td>
                   <td>{transaction.description ?? "-"}</td>
                   <td>{formatDateTime(transaction.occurred_at)}</td>
                   <td>{formatDateTime(transaction.created_at)}</td>

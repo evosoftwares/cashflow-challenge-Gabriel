@@ -27,11 +27,11 @@ function mockFetch(handler: (input: RequestInfo | URL, init?: RequestInit) => Mo
 }
 
 async function fillOperationContext(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByLabelText("API Key"), "local-dev-key");
-  await user.clear(screen.getByLabelText("Merchant ID"));
-  await user.type(screen.getByLabelText("Merchant ID"), "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11");
-  await user.clear(screen.getByLabelText("Data de operação"));
-  await user.type(screen.getByLabelText("Data de operação"), "2026-05-20");
+  await user.type(screen.getByLabelText("Chave de acesso"), "local-dev-key");
+  await user.clear(screen.getByLabelText("Comerciante"));
+  await user.type(screen.getByLabelText("Comerciante"), "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11");
+  await user.clear(screen.getByLabelText("Data"));
+  await user.type(screen.getByLabelText("Data"), "2026-05-20");
 }
 
 describe("Cash Flow operational portal", () => {
@@ -50,10 +50,10 @@ describe("Cash Flow operational portal", () => {
     render(<App />);
 
     expect(screen.getByRole("heading", { name: "Cash Flow Portal" })).toBeInTheDocument();
-    expect(await screen.findByText("API online")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Registrar lançamento" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Atualizar lançamentos" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Consultar consolidado" })).toBeDisabled();
+    expect(await screen.findByText("Sistema conectado")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Salvar movimentação" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Atualizar movimentações" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Atualizar resumo do dia" })).toBeDisabled();
   });
 
   test("creates a transaction with the API key header and shows success", async () => {
@@ -89,12 +89,12 @@ describe("Cash Flow operational portal", () => {
     render(<App />);
     await fillOperationContext(user);
     await user.type(screen.getByLabelText("Valor"), "100.00");
-    await user.type(screen.getByLabelText("Descrição"), "Venda no cartao");
-    await user.clear(screen.getByLabelText("Data/hora do lançamento"));
-    await user.type(screen.getByLabelText("Data/hora do lançamento"), "2026-05-20T10:00");
-    await user.click(screen.getByRole("button", { name: "Registrar lançamento" }));
+    await user.type(screen.getByLabelText("Descrição simples"), "Venda no cartao");
+    await user.clear(screen.getByLabelText("Quando aconteceu"));
+    await user.type(screen.getByLabelText("Quando aconteceu"), "2026-05-20T10:00");
+    await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
 
-    expect(await screen.findByText("Lançamento criado com sucesso.")).toBeInTheDocument();
+    expect(await screen.findByText("Movimentação salva com sucesso.")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8000/transactions",
       expect.objectContaining({ method: "POST" }),
@@ -112,9 +112,9 @@ describe("Cash Flow operational portal", () => {
 
     render(<App />);
     await fillOperationContext(user);
-    await user.click(screen.getByRole("button", { name: "Consultar consolidado" }));
+    await user.click(screen.getByRole("button", { name: "Atualizar resumo do dia" }));
 
-    expect(await screen.findByText("Ainda não consolidado")).toBeInTheDocument();
+    expect(await screen.findByText("Aguardando atualização")).toBeInTheDocument();
   });
 
   test("renders a daily balance when consolidation is available", async () => {
@@ -136,12 +136,12 @@ describe("Cash Flow operational portal", () => {
 
     render(<App />);
     await fillOperationContext(user);
-    await user.click(screen.getByRole("button", { name: "Consultar consolidado" }));
+    await user.click(screen.getByRole("button", { name: "Atualizar resumo do dia" }));
 
-    expect(await screen.findByText("Consolidado disponível")).toBeInTheDocument();
+    expect(await screen.findByText("Saldo atualizado")).toBeInTheDocument();
     expect(screen.getByText("R$ 300,00")).toBeInTheDocument();
     expect(screen.getByText("R$ 80,00")).toBeInTheDocument();
-    expect(screen.getByText("R$ 220,00")).toBeInTheDocument();
+    expect(screen.getAllByText("R$ 220,00").length).toBeGreaterThanOrEqual(1);
   });
 
   test("lists transactions returned by the API", async () => {
@@ -167,11 +167,11 @@ describe("Cash Flow operational portal", () => {
 
     render(<App />);
     await fillOperationContext(user);
-    await user.click(screen.getByRole("button", { name: "Atualizar lançamentos" }));
+    await user.click(screen.getByRole("button", { name: "Atualizar movimentações" }));
 
-    const table = await screen.findByRole("table", { name: "Lançamentos financeiros" });
+    const table = await screen.findByRole("table", { name: "Movimentações financeiras" });
     expect(within(table).getByText("Venda no cartao")).toBeInTheDocument();
-    expect(within(table).getByText("Crédito")).toBeInTheDocument();
+    expect(within(table).getByText("Entrada")).toBeInTheDocument();
     expect(within(table).getByText("R$ 100,00")).toBeInTheDocument();
   });
 
@@ -189,12 +189,12 @@ describe("Cash Flow operational portal", () => {
     render(<App />);
     await fillOperationContext(user);
     await user.type(screen.getByLabelText("Valor"), "100.00");
-    await user.clear(screen.getByLabelText("Data/hora do lançamento"));
-    await user.type(screen.getByLabelText("Data/hora do lançamento"), "2026-05-20T10:00");
-    await user.click(screen.getByRole("button", { name: "Registrar lançamento" }));
+    await user.clear(screen.getByLabelText("Quando aconteceu"));
+    await user.type(screen.getByLabelText("Quando aconteceu"), "2026-05-20T10:00");
+    await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
 
     await waitFor(() => {
-      expect(screen.getByText("API Key inválida ou ausente.")).toBeInTheDocument();
+      expect(screen.getByText("Chave de acesso inválida ou ausente.")).toBeInTheDocument();
     });
   });
 });

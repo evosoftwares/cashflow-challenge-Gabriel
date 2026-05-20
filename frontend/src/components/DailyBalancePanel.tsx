@@ -1,9 +1,12 @@
+import { ArrowDownRight, ArrowUpRight, RefreshCw, WalletCards } from "lucide-react";
+
 import type { DailyBalance } from "../api/client";
 
 type DailyBalancePanelProps = {
   balance: DailyBalance | null;
   state: "idle" | "loading" | "available" | "pending" | "error";
   disabled: boolean;
+  date: string;
   onRefresh: () => void;
 };
 
@@ -18,39 +21,72 @@ function formatCurrency(value: string | undefined): string {
 }
 
 function stateLabel(state: DailyBalancePanelProps["state"]) {
-  if (state === "available") return "Consolidado disponível";
-  if (state === "pending") return "Ainda não consolidado";
+  if (state === "available") return "Saldo atualizado";
+  if (state === "pending") return "Aguardando atualização";
   if (state === "error") return "Erro";
-  if (state === "loading") return "Consultando consolidado";
-  return "Aguardando consulta";
+  if (state === "loading") return "Buscando saldo";
+  return "Aguardando busca";
 }
 
-export function DailyBalancePanel({ balance, state, disabled, onRefresh }: DailyBalancePanelProps) {
+function formatDate(value: string): string {
+  const parsedDate = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return value || "Data não definida";
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(parsedDate);
+}
+
+export function DailyBalancePanel({ balance, state, disabled, date, onRefresh }: DailyBalancePanelProps) {
+  const balanceValue = formatCurrency(balance?.balance);
+
   return (
     <section className="panel balance-panel" aria-labelledby="balance-title">
       <div className="panel-header panel-header--row">
         <div>
-          <h2 id="balance-title">Consolidado diário</h2>
-          <p>Saldo calculado pelo worker assíncrono.</p>
+          <h2 id="balance-title">Resumo do dia</h2>
+          <p>{formatDate(date)}</p>
         </div>
-        <button className="button button--secondary" disabled={disabled || state === "loading"} onClick={onRefresh} type="button">
-          Consultar consolidado
+        <button
+          aria-label="Atualizar resumo do dia"
+          className="button button--secondary"
+          disabled={disabled || state === "loading"}
+          onClick={onRefresh}
+          type="button"
+        >
+          <RefreshCw size={16} strokeWidth={2.2} aria-hidden="true" />
+          Atualizar
         </button>
       </div>
 
-      <div className={`balance-state balance-state--${state}`}>{stateLabel(state)}</div>
+      <div className="balance-hero">
+        <div>
+          <span className={`balance-state balance-state--${state}`}>
+            <span className="status-dot" aria-hidden="true" />
+            {stateLabel(state)}
+          </span>
+          <p>Saldo do dia</p>
+        </div>
+        <strong>{balanceValue}</strong>
+      </div>
 
       <dl className="metric-grid">
-        <div>
-          <dt>Total de créditos</dt>
+        <div className="metric-card metric-card--credit">
+          <dt>
+            <ArrowUpRight size={15} strokeWidth={2.4} aria-hidden="true" />
+            Entradas
+          </dt>
           <dd>{formatCurrency(balance?.total_credit)}</dd>
         </div>
-        <div>
-          <dt>Total de débitos</dt>
+        <div className="metric-card metric-card--debit">
+          <dt>
+            <ArrowDownRight size={15} strokeWidth={2.4} aria-hidden="true" />
+            Saídas
+          </dt>
           <dd>{formatCurrency(balance?.total_debit)}</dd>
         </div>
-        <div className="metric-grid__balance">
-          <dt>Saldo</dt>
+        <div className="metric-card metric-grid__balance">
+          <dt>
+            <WalletCards size={15} strokeWidth={2.4} aria-hidden="true" />
+            Saldo
+          </dt>
           <dd>{formatCurrency(balance?.balance)}</dd>
         </div>
       </dl>

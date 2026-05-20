@@ -47,7 +47,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000
 
 async function parseError(response: Response): Promise<ApiError> {
   if (response.status === 401) {
-    return new ApiError("API Key inválida ou ausente.", response.status);
+    return new ApiError("Chave de acesso inválida ou ausente.", response.status);
   }
   if (response.status === 404) {
     return new ApiError("Recurso não encontrado.", response.status);
