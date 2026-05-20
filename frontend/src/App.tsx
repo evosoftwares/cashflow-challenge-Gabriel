@@ -18,6 +18,7 @@ import { TransactionForm } from "./components/TransactionForm";
 import { TransactionsTable } from "./components/TransactionsTable";
 
 const defaultApiKey = import.meta.env.VITE_DEFAULT_API_KEY ?? "local-dev-key";
+const defaultMerchantId = "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11";
 
 function todayDate() {
   return new Date().toISOString().slice(0, 10);
@@ -48,7 +49,7 @@ function errorMessage(error: unknown) {
 
 export default function App() {
   const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
-  const [merchantId, setMerchantId] = useState("");
+  const [merchantId, setMerchantId] = useState(defaultMerchantId);
   const [operationDate, setOperationDate] = useState(todayDate);
   const [transactionType, setTransactionType] = useState<TransactionType>("CREDIT");
   const [amount, setAmount] = useState("");
@@ -81,6 +82,8 @@ export default function App() {
     [merchantId, operationDate],
   );
   const canCreate = hasProtectedContext && amount.trim().length > 0 && occurredAt.trim().length > 0;
+  const selectedStoreName =
+    merchantId === defaultMerchantId ? "Loja Carrefour - Demonstração" : "Loja de teste local";
 
   useEffect(() => {
     if (!hasProtectedContext) {
@@ -197,7 +200,7 @@ export default function App() {
         <div className="operation-context__intro">
           <div>
             <h2 id="operation-context-title">Dados para consulta</h2>
-            <p>Escolha o comerciante e a data.</p>
+            <p>A loja já está pronta para uso. Escolha apenas a data.</p>
           </div>
           <span className={hasProtectedContext ? "context-state context-state--ready" : "context-state"}>
             <span className="status-dot" aria-hidden="true" />
@@ -205,16 +208,11 @@ export default function App() {
           </span>
         </div>
         <div className="context-grid">
-          <label className="field">
-            <span>Comerciante</span>
-            <input
-              aria-label="Comerciante"
-              type="text"
-              value={merchantId}
-              onChange={(event) => setMerchantId(event.target.value)}
-              placeholder="8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11"
-            />
-          </label>
+          <div className="store-summary" role="group" aria-label="Loja selecionada">
+            <span className="store-summary__label">Loja</span>
+            <strong>{selectedStoreName}</strong>
+            <small>{merchantId === defaultMerchantId ? "Ambiente de demonstração" : "Nova loja para teste local"}</small>
+          </div>
           <label className="field">
             <span>Data</span>
             <input
@@ -225,12 +223,12 @@ export default function App() {
             />
           </label>
           <button
-            aria-label="Criar comerciante de teste"
+            aria-label="Criar loja de teste"
             className="button button--secondary context-grid__button"
             onClick={generateMerchantId}
             type="button"
           >
-            Criar teste
+            Nova loja teste
           </button>
         </div>
       </section>

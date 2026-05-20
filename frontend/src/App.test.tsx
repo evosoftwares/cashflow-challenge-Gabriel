@@ -17,6 +17,7 @@ const jsonResponse = (status: number, body: unknown): MockResponse => ({
 });
 
 const healthResponse = () => jsonResponse(200, { status: "ok" });
+const demoMerchantId = "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11";
 
 const streamResponse = (messages: string[]) =>
   new Response(
@@ -39,11 +40,17 @@ const streamResponse = (messages: string[]) =>
 
 function mockFetch(handler: (input: RequestInfo | URL, init?: RequestInit) => MockResponse | Response) {
   const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
     try {
       return Promise.resolve(handler(input, init));
     } catch (error) {
-      if (String(input).includes("/daily-balances/") && String(input).includes("/stream")) {
+      if (url.endsWith("/health")) return Promise.resolve(healthResponse());
+      if (url.includes("/daily-balances/") && url.includes("/stream")) {
         return Promise.resolve(streamResponse(['event: daily_balance\ndata: {"status":"pending"}\n\n']));
+      }
+      if (url.includes("/transactions?")) return Promise.resolve(jsonResponse(200, []));
+      if (url.includes("/daily-balances/")) {
+        return Promise.resolve(jsonResponse(404, { detail: "Daily balance not found" }));
       }
       throw error;
     }
@@ -53,8 +60,6 @@ function mockFetch(handler: (input: RequestInfo | URL, init?: RequestInit) => Mo
 }
 
 async function fillOperationContext(user: ReturnType<typeof userEvent.setup>) {
-  await user.clear(screen.getByLabelText("Comerciante"));
-  await user.type(screen.getByLabelText("Comerciante"), "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11");
   await user.clear(screen.getByLabelText("Data"));
   await user.type(screen.getByLabelText("Data"), "2026-05-20");
 }
@@ -69,8 +74,13 @@ describe("Cash Flow operational portal", () => {
     vi.unstubAllGlobals();
   });
 
-  test("renders the branded operational shell and keeps technical access hidden", async () => {
-    mockFetch(() => healthResponse());
+  test("renders the branded operational shell ready for a nontechnical operator", async () => {
+    const user = userEvent.setup();
+    mockFetch((input) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return healthResponse();
+      throw new Error(`Unexpected request: ${url}`);
+    });
 
     render(<App />);
 
@@ -78,9 +88,15 @@ describe("Cash Flow operational portal", () => {
     expect(await screen.findByText("API conectada")).toBeInTheDocument();
     expect(screen.getByText("API local localhost:8000")).toBeInTheDocument();
     expect(screen.queryByText("Chave de acesso")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Salvar movimentação" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Atualizar movimentações" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Atualizar resumo do dia" })).toBeDisabled();
+    expect(screen.getByText("Loja Carrefour - Demonstração")).toBeInTheDocument();
+    expect(screen.getByText("Pronto para usar")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Atualizar movimentações" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Atualizar resumo do dia" })).toBeEnabled();
+
+    const saveButton = screen.getByRole("button", { name: "Salvar movimentação" });
+    expect(saveButton).toBeDisabled();
+    await user.type(screen.getByLabelText("Valor"), "100.00");
+    expect(saveButton).toBeEnabled();
   });
 
   test("creates a transaction with the API key header and shows success", async () => {
@@ -93,7 +109,7 @@ describe("Cash Flow operational portal", () => {
           "X-API-Key": "local-dev-key",
         });
         expect(JSON.parse(String(init.body))).toMatchObject({
-          merchant_id: "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11",
+          merchant_id: demoMerchantId,
           type: "CREDIT",
           amount: "100.00",
           description: "Venda no cartao",
@@ -101,7 +117,7 @@ describe("Cash Flow operational portal", () => {
         });
         return jsonResponse(201, {
           id: "4dc7300e-8df7-4634-b6a0-8bda7afc4218",
-          merchant_id: "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11",
+          merchant_id: demoMerchantId,
           type: "CREDIT",
           amount: "100.00",
           status: "CREATED",

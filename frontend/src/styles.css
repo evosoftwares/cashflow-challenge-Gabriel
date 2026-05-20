@@ -308,13 +308,48 @@ p {
 
 .context-grid {
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) minmax(150px, 0.34fr) auto;
+  grid-template-columns: minmax(240px, 1fr) minmax(150px, 0.34fr) auto;
   gap: 10px;
   align-items: end;
 }
 
 .context-grid__button {
   white-space: nowrap;
+}
+
+.store-summary {
+  display: flex;
+  min-height: 38px;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #fff;
+  padding: 8px 10px;
+}
+
+.store-summary__label {
+  color: var(--muted-strong);
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.store-summary strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-summary small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .status-message {
