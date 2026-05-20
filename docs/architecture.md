@@ -10,21 +10,90 @@ O domínio de Consolidação é responsável por calcular e disponibilizar o sal
 
 A comunicação entre os dois ocorre de forma assíncrona via RabbitMQ, garantindo que falhas na consolidação não impactem o registro de lançamentos.
 
-## Diagrama
+## Diagrama de contexto
 
 ```mermaid
 flowchart TD
-    A[Cliente] --> B[FastAPI]
-    B --> C[Transactions Module]
-    C --> D[(PostgreSQL - transactions)]
-    C --> E[RabbitMQ - transaction.created]
-    E --> F[Consolidation Worker]
-    F --> G[(PostgreSQL - daily_balances)]
-    B --> H[Consolidation Query]
-    H --> G
+    USER[Comerciante / Operador]
+    SYSTEM[Cash Flow System<br/>Controle de Fluxo de Caixa Diário]
+    USER -->|Registra créditos e débitos| SYSTEM
+    USER -->|Consulta saldo diário consolidado| SYSTEM
+    SYSTEM -->|Persiste lançamentos| DB[(PostgreSQL)]
+    SYSTEM -->|Publica eventos de lançamento| MQ[RabbitMQ]
+    MQ -->|Entrega eventos| WORKER[Worker de Consolidação]
+    WORKER -->|Atualiza saldo diário| DB
+```
+
+## Arquitetura alvo da solução
+
+```mermaid
+flowchart TD
+    CLIENT[Cliente / Usuário]
+    subgraph APP[FastAPI Application - Monólito Modular]
+        API[API Layer]
+        subgraph TRANSACTIONS[Módulo de Lançamentos]
+            TRoutes[Transactions Routes]
+            TService[Transactions Service]
+            TRepo[Transactions Repository]
+        end
+        subgraph CONSOLIDATION[Módulo de Consolidação]
+            CRoutes[Daily Balance Routes]
+            CService[Consolidation Service]
+            CRepo[Consolidation Repository]
+        end
+        subgraph MESSAGING[Módulo de Mensageria]
+            Publisher[Event Publisher]
+            Consumer[Event Consumer]
+        end
+    end
+    DB[(PostgreSQL)]
+    MQ[RabbitMQ<br/>Queue: transaction.created]
+    WORKER[Consolidation Worker]
+    CLIENT -->|HTTP Request| API
+    API --> TRoutes
+    TRoutes --> TService
+    TService --> TRepo
+    TRepo -->|Salva lançamento| DB
+    TService --> Publisher
+    Publisher -->|Publica evento| MQ
+    MQ -->|Entrega evento| WORKER
+    WORKER --> Consumer
+    Consumer --> CService
+    CService --> CRepo
+    CRepo -->|Atualiza saldo diário| DB
+    API --> CRoutes
+    CRoutes --> CService
+    CService -->|Consulta saldo consolidado| DB
 ```
 
 ## Fluxo de criação de lançamento
+
+```mermaid
+sequenceDiagram
+    actor User as Comerciante
+    participant API as FastAPI
+    participant Transaction as Módulo de Lançamentos
+    participant DB as PostgreSQL
+    participant MQ as RabbitMQ
+    participant Worker as Worker de Consolidação
+    participant Consolidation as Módulo de Consolidação
+    User->>API: POST /transactions
+    API->>Transaction: Validar dados do lançamento
+    Transaction->>DB: Salvar lançamento em transactions
+    DB-->>Transaction: Lançamento salvo
+    Transaction->>MQ: Publicar evento transaction.created
+    MQ-->>Transaction: Evento recebido
+    Transaction-->>API: Retornar 201 Created
+    API-->>User: Lançamento criado com sucesso
+    MQ->>Worker: Entregar evento pendente
+    Worker->>Consolidation: Processar evento
+    Consolidation->>DB: Verificar processed_events
+    Consolidation->>DB: Atualizar daily_balances
+    Consolidation->>DB: Registrar event_id processado
+    Worker->>MQ: ACK da mensagem
+```
+
+Fluxo:
 
 1. Cliente chama `POST /transactions`.
 2. API valida os dados.
@@ -34,7 +103,31 @@ flowchart TD
 6. Worker consome o evento.
 7. Worker atualiza o saldo diário.
 
-## Fluxo de falha
+## Fluxo de resiliência
+
+```mermaid
+sequenceDiagram
+    actor User as Comerciante
+    participant API as FastAPI
+    participant Transaction as Módulo de Lançamentos
+    participant DB as PostgreSQL
+    participant MQ as RabbitMQ
+    participant Worker as Worker de Consolidação
+    Note over Worker: Worker indisponível
+    User->>API: POST /transactions
+    API->>Transaction: Criar lançamento
+    Transaction->>DB: Salvar lançamento
+    DB-->>Transaction: Lançamento salvo
+    Transaction->>MQ: Publicar evento transaction.created
+    MQ-->>Transaction: Mensagem armazenada na fila
+    Transaction-->>API: 201 Created
+    API-->>User: Lançamento criado com sucesso
+    Note over MQ: Evento permanece aguardando consumo
+    Note over Worker: Worker volta a ficar disponível
+    MQ->>Worker: Entregar evento pendente
+    Worker->>DB: Atualizar daily_balances
+    Worker->>MQ: ACK da mensagem
+```
 
 Se o worker de consolidação estiver indisponível:
 
@@ -42,7 +135,90 @@ Se o worker de consolidação estiver indisponível:
 2. A mensagem fica na fila.
 3. Quando o worker volta, a mensagem é processada.
 
-## Modelo de dados
+## Diagrama de domínios e capacidades
+
+```mermaid
+flowchart LR
+    subgraph BUSINESS[Capacidades de Negócio]
+        CF[Controle de Fluxo de Caixa]
+        REG[Registro de Movimentações]
+        CONS[Consolidação Diária]
+        QUERY[Consulta de Saldo]
+    end
+    subgraph DOMAIN1[Domínio de Lançamentos]
+        CRED[Registrar Crédito]
+        DEB[Registrar Débito]
+        VAL[Validar Lançamento]
+        EVT[Publicar Evento]
+    end
+    subgraph DOMAIN2[Domínio de Consolidação]
+        CONSUME[Consumir Evento]
+        CALC[Calcular Saldo Diário]
+        IDEMP[Garantir Idempotência]
+        BAL[Disponibilizar Saldo]
+    end
+    CF --> REG
+    CF --> CONS
+    CF --> QUERY
+    REG --> DOMAIN1
+    CONS --> DOMAIN2
+    QUERY --> DOMAIN2
+    CRED --> EVT
+    DEB --> EVT
+    VAL --> EVT
+    EVT --> CONSUME
+    CONSUME --> IDEMP
+    IDEMP --> CALC
+    CALC --> BAL
+```
+
+## Modelo lógico de dados
+
+```mermaid
+erDiagram
+    TRANSACTIONS {
+        uuid id PK
+        uuid merchant_id
+        string type
+        decimal amount
+        string description
+        datetime occurred_at
+        datetime created_at
+    }
+    DAILY_BALANCES {
+        uuid id PK
+        uuid merchant_id
+        date balance_date
+        decimal total_credit
+        decimal total_debit
+        decimal balance
+        datetime updated_at
+    }
+    PROCESSED_EVENTS {
+        uuid event_id PK
+        uuid transaction_id
+        datetime processed_at
+    }
+    TRANSACTIONS ||--o| PROCESSED_EVENTS : generates
+    TRANSACTIONS }o--|| DAILY_BALANCES : contributes_to
+```
+
+## Diagrama de decisão arquitetural
+
+```mermaid
+flowchart TD
+    REQ[Requisito crítico:<br/>lançamentos não podem parar<br/>se consolidação cair]
+    SYNC[Comunicação síncrona<br/>API chama consolidado diretamente]
+    ASYNC[Comunicação assíncrona<br/>via RabbitMQ]
+    REQ --> CHOICE{Qual abordagem atende melhor?}
+    CHOICE --> SYNC
+    CHOICE --> ASYNC
+    SYNC --> BAD[Não recomendado<br/>falha no consolidado pode afetar lançamento]
+    ASYNC --> GOOD[Recomendado<br/>lançamento segue funcionando<br/>evento fica na fila]
+    GOOD --> RESULT[Decisão:<br/>usar RabbitMQ com worker assíncrono]
+```
+
+## Descrição das tabelas
 
 ### transactions
 

@@ -16,26 +16,25 @@ A escolha por monólito modular evita complexidade operacional desnecessária, m
 
 ## Arquitetura
 
-```text
-                 Cliente
-                    |
-                 FastAPI
-                    |
-        -------------------------
-        |                       |
- Transactions Module    Consolidation Query
-        |
-        v
-   PostgreSQL
-        |
-        v
-    RabbitMQ
-        |
-        v
- Consolidation Worker
-        |
-        v
-   PostgreSQL
+```mermaid
+flowchart TD
+    CLIENT[Cliente]
+    API[FastAPI<br/>Arquitetura Modular]
+    TX[Módulo de Lançamentos]
+    DB[(PostgreSQL)]
+    MQ[RabbitMQ<br/>transaction.created]
+    WORKER[Worker de Consolidação]
+    BAL[Módulo de Consolidação]
+    CLIENT -->|POST /transactions| API
+    API --> TX
+    TX -->|Salva lançamento| DB
+    TX -->|Publica evento| MQ
+    MQ --> WORKER
+    WORKER --> BAL
+    BAL -->|Atualiza saldo diário| DB
+    CLIENT -->|GET /daily-balances/date| API
+    API --> BAL
+    BAL -->|Consulta saldo| DB
 ```
 
 Fluxo principal:
