@@ -85,12 +85,14 @@ describe("Cash Flow operational portal", () => {
     render(<App />);
 
     expect(screen.getByRole("heading", { name: "Mercado do Bairro Fluxo de Caixa" })).toBeInTheDocument();
-    expect(await screen.findByText("API conectada")).toBeInTheDocument();
-    expect(screen.getByText("API local localhost:8000")).toBeInTheDocument();
+    expect(screen.queryByText("API conectada")).not.toBeInTheDocument();
+    expect(screen.queryByText("API local localhost:8000")).not.toBeInTheDocument();
     expect(screen.queryByText("Chave de acesso")).not.toBeInTheDocument();
     expect(screen.getByText("Mercado do Bairro - Demonstração")).toBeInTheDocument();
     expect(screen.getByText("Pronto para usar")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Atualizar movimentações" })).toBeEnabled();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Atualizar movimentações" })).toBeEnabled();
+    });
     expect(screen.getByRole("button", { name: "Atualizar resumo do dia" })).toBeEnabled();
 
     const saveButton = screen.getByRole("button", { name: "Salvar movimentação" });

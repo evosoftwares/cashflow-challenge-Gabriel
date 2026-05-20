@@ -108,7 +108,7 @@ p {
 .app-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 18px;
   padding: 14px 16px;
   backdrop-filter: blur(10px);
@@ -165,13 +165,6 @@ p {
   line-height: 1;
 }
 
-.header-controls {
-  display: flex;
-  align-items: end;
-  gap: 12px;
-}
-
-.api-status,
 .balance-state,
 .context-state {
   display: inline-flex;
@@ -186,30 +179,6 @@ p {
   white-space: nowrap;
 }
 
-.api-status {
-  min-height: 42px;
-  padding: 0 12px;
-}
-
-.api-status__content {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  line-height: 1.05;
-}
-
-.api-status__label {
-  color: currentColor;
-  font-size: 0.76rem;
-}
-
-.api-status__target {
-  color: currentColor;
-  font-size: 0.63rem;
-  font-weight: 750;
-  opacity: 0.72;
-}
-
 .status-dot {
   width: 7px;
   height: 7px;
@@ -217,18 +186,6 @@ p {
   border-radius: 999px;
   background: currentColor;
   opacity: 0.75;
-}
-
-.api-status--online {
-  border-color: #b8d5f3;
-  background: var(--success-bg);
-  color: var(--primary);
-}
-
-.api-status--offline {
-  border-color: #f1b9b1;
-  background: var(--error-bg);
-  color: var(--danger);
 }
 
 .field {
@@ -758,7 +715,6 @@ td {
 
 @media (max-width: 960px) {
   .app-header,
-  .header-controls,
   .operation-context,
   .operation-context__intro,
   .primary-grid,
@@ -767,8 +723,7 @@ td {
     grid-template-columns: 1fr;
   }
 
-  .app-header,
-  .header-controls {
+  .app-header {
     align-items: stretch;
     flex-direction: column;
   }

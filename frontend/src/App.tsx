@@ -4,7 +4,6 @@ import {
   ApiError,
   createTransaction,
   getDailyBalance,
-  getHealth,
   listTransactions,
   subscribeDailyBalance,
   type DailyBalance,
@@ -48,7 +47,6 @@ function errorMessage(error: unknown) {
 }
 
 export default function App() {
-  const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
   const [merchantId, setMerchantId] = useState(defaultMerchantId);
   const [operationDate, setOperationDate] = useState(todayDate);
   const [transactionType, setTransactionType] = useState<TransactionType>("CREDIT");
@@ -61,21 +59,6 @@ export default function App() {
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "warning" | "error" | "info"; text: string } | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    getHealth()
-      .then(() => {
-        if (active) setApiStatus("online");
-      })
-      .catch(() => {
-        if (active) setApiStatus("offline");
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const hasProtectedContext = useMemo(
     () => isValidUuid(merchantId) && operationDate.trim().length > 0,
@@ -194,7 +177,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <ApiSettings apiStatus={apiStatus} />
+      <ApiSettings />
 
       <section className="operation-context" aria-labelledby="operation-context-title">
         <div className="operation-context__intro">
