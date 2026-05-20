@@ -14,6 +14,7 @@
   --surface-raised: #ffffff;
   --border: #e2e8f0;
   --border-strong: #cbd5e1;
+  --border-accent: #b8d5f3;
   --text: #0f172a;
   --muted: #64748b;
   --muted-strong: #334155;
@@ -33,6 +34,7 @@
   --ring: #0057b8;
   --shadow-soft: 0 1px 2px rgb(15 23 42 / 6%), 0 12px 24px rgb(15 23 42 / 5%);
   --shadow-hover: 0 1px 2px rgb(15 23 42 / 8%), 0 18px 34px rgb(15 23 42 / 8%);
+  --shadow-focus: 0 2px 4px rgb(0 79 158 / 8%), 0 18px 38px rgb(0 79 158 / 12%);
 }
 
 * {
@@ -338,11 +340,12 @@ p {
   color: #245d90;
 }
 
-.workspace-grid {
+.primary-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.98fr);
+  grid-template-columns: minmax(420px, 1.25fr) minmax(320px, 0.75fr);
   gap: 14px;
   margin-top: 14px;
+  align-items: stretch;
 }
 
 .panel {
@@ -371,7 +374,7 @@ p {
 
 .form-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -434,6 +437,10 @@ p {
   justify-content: flex-end;
 }
 
+.form-actions .button {
+  width: 100%;
+}
+
 .button {
   display: inline-flex;
   align-items: center;
@@ -488,6 +495,11 @@ p {
 .balance-panel {
   display: flex;
   flex-direction: column;
+  border-color: var(--border-accent);
+  background:
+    linear-gradient(180deg, rgb(244 249 255 / 92%) 0%, #ffffff 62%),
+    var(--surface);
+  box-shadow: var(--shadow-focus);
 }
 
 .balance-state {
@@ -517,25 +529,27 @@ p {
 .balance-hero {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
+  gap: 12px;
   align-items: start;
-  border: 1px solid #b8d5f3;
+  min-height: 176px;
+  border: 1px solid var(--border-accent);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, #f4f9ff 0%, #eef5ff 100%),
+    linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%),
     #f4f9ff;
-  padding: 14px;
+  padding: 18px;
 }
 
 .balance-hero p {
-  margin-top: 8px;
+  margin-top: 12px;
   color: var(--muted-strong);
+  font-size: 0.9rem;
   font-weight: 700;
 }
 
 .balance-hero strong {
   color: var(--primary-hover);
-  font-size: clamp(1.65rem, 4vw, 2.35rem);
+  font-size: clamp(2.15rem, 5vw, 3rem);
   font-weight: 900;
   letter-spacing: 0;
   line-height: 0.95;
@@ -545,15 +559,15 @@ p {
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin: 12px 0 0;
+  gap: 8px;
+  margin: 10px 0 0;
 }
 
 .metric-card {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
-  padding: 10px;
+  padding: 11px;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%);
 }
 
@@ -570,7 +584,7 @@ p {
 .metric-card dd {
   margin: 6px 0 0;
   color: var(--text);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 900;
 }
 
@@ -588,6 +602,7 @@ p {
 
 .transactions-panel {
   margin-top: 14px;
+  padding-bottom: 16px;
 }
 
 .table-wrap {
@@ -599,7 +614,7 @@ p {
 
 table {
   width: 100%;
-  min-width: 760px;
+  min-width: 720px;
   border-collapse: collapse;
   background: #fff;
 }
@@ -617,7 +632,7 @@ tr:last-child td {
 }
 
 th {
-  background: #f8fafc;
+  background: #f3f7fb;
   color: var(--muted-strong);
   font-size: 0.68rem;
   font-weight: 900;
@@ -633,6 +648,32 @@ td {
   color: var(--text);
   font-weight: 850;
   white-space: nowrap;
+}
+
+.amount-cell--credit {
+  color: var(--primary-hover);
+}
+
+.amount-cell--debit {
+  color: var(--brand-red-dark);
+}
+
+.transaction-row {
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.transaction-row:hover {
+  background: #f8fbff;
+}
+
+.transaction-row--credit td:first-child {
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.transaction-row--debit td:first-child {
+  box-shadow: inset 3px 0 0 var(--brand-red);
 }
 
 .empty-row {
@@ -666,7 +707,7 @@ td {
   .header-controls,
   .operation-context,
   .operation-context__intro,
-  .workspace-grid,
+  .primary-grid,
   .context-grid,
   .metric-grid {
     grid-template-columns: 1fr;
@@ -685,6 +726,7 @@ td {
 
   .balance-hero {
     grid-template-columns: 1fr;
+    min-height: 0;
   }
 
   .balance-hero strong {

@@ -69,13 +69,18 @@ export function TransactionsTable({ transactions, disabled, loading, onRefresh }
               </tr>
             ) : (
               transactions.map((transaction) => (
-                <tr key={transaction.id}>
+                <tr
+                  className={`transaction-row transaction-row--${transaction.type.toLowerCase()}`}
+                  key={transaction.id}
+                >
                   <td>
                     <span className={`type-badge type-badge--${transaction.type.toLowerCase()}`}>
                       {formatType(transaction.type)}
                     </span>
                   </td>
-                  <td className="amount-cell">{formatCurrency(transaction.amount)}</td>
+                  <td className={`amount-cell amount-cell--${transaction.type.toLowerCase()}`}>
+                    {formatCurrency(transaction.amount)}
+                  </td>
                   <td>{transaction.description ?? "-"}</td>
                   <td>{formatDateTime(transaction.occurred_at)}</td>
                   <td>{formatDateTime(transaction.created_at)}</td>

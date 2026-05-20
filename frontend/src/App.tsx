@@ -237,7 +237,15 @@ export default function App() {
 
       {message ? <StatusMessage tone={message.tone}>{message.text}</StatusMessage> : null}
 
-      <div className="workspace-grid">
+      <div className="primary-grid">
+        <DailyBalancePanel
+          balance={dailyBalance}
+          disabled={!hasProtectedContext}
+          date={operationDate}
+          state={balanceState}
+          onRefresh={refreshDailyBalance}
+        />
+
         <TransactionForm
           amount={amount}
           description={description}
@@ -250,14 +258,6 @@ export default function App() {
           onOccurredAtChange={setOccurredAt}
           onSubmit={submitTransaction}
           onTypeChange={setTransactionType}
-        />
-
-        <DailyBalancePanel
-          balance={dailyBalance}
-          disabled={!hasProtectedContext}
-          date={operationDate}
-          state={balanceState}
-          onRefresh={refreshDailyBalance}
         />
       </div>
 
