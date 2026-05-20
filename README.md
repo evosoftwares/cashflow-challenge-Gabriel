@@ -91,6 +91,7 @@ Os ADRs estão em `docs/adr/`.
 - Prontidão final para entrega e produção real: `docs/production-readiness.md`.
 - Checklist de aderência ao desafio: `docs/compliance-checklist.md`.
 - Evidências de verificação: `docs/verification.md`.
+- Histórico da sessão de desenvolvimento: `docs/development-session-2026-05-20.md`.
 - Migração versionada com Alembic: `src/database/alembic/versions/`.
 - Testes unitários, integração leve e carga.
 - CI no GitHub Actions para testes de backend, frontend, build e validação do Docker Compose.
