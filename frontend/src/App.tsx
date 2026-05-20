@@ -16,7 +16,7 @@ import { StatusMessage } from "./components/StatusMessage";
 import { TransactionForm } from "./components/TransactionForm";
 import { TransactionsTable } from "./components/TransactionsTable";
 
-const apiKeyStorageKey = "cashflow.apiKey";
+const defaultApiKey = import.meta.env.VITE_DEFAULT_API_KEY ?? "local-dev-key";
 
 function todayDate() {
   return new Date().toISOString().slice(0, 10);
@@ -40,7 +40,6 @@ function errorMessage(error: unknown) {
 }
 
 export default function App() {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(apiKeyStorageKey) ?? "");
   const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
   const [merchantId, setMerchantId] = useState("");
   const [operationDate, setOperationDate] = useState(todayDate);
@@ -54,10 +53,6 @@ export default function App() {
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "warning" | "error" | "info"; text: string } | null>(null);
-
-  useEffect(() => {
-    localStorage.setItem(apiKeyStorageKey, apiKey);
-  }, [apiKey]);
 
   useEffect(() => {
     let active = true;
@@ -75,8 +70,8 @@ export default function App() {
   }, []);
 
   const hasProtectedContext = useMemo(
-    () => apiKey.trim().length > 0 && merchantId.trim().length > 0 && operationDate.trim().length > 0,
-    [apiKey, merchantId, operationDate],
+    () => merchantId.trim().length > 0 && operationDate.trim().length > 0,
+    [merchantId, operationDate],
   );
   const canCreate = hasProtectedContext && amount.trim().length > 0 && occurredAt.trim().length > 0;
 
@@ -85,7 +80,7 @@ export default function App() {
     setTransactionsLoading(true);
     setMessage(null);
     try {
-      const rows = await listTransactions(apiKey.trim(), merchantId.trim(), operationDate);
+      const rows = await listTransactions(defaultApiKey, merchantId.trim(), operationDate);
       setTransactions(rows);
     } catch (error) {
       setMessage({ tone: "error", text: errorMessage(error) });
@@ -99,7 +94,7 @@ export default function App() {
     setBalanceState("loading");
     setMessage(null);
     try {
-      const balance = await getDailyBalance(apiKey.trim(), merchantId.trim(), operationDate);
+      const balance = await getDailyBalance(defaultApiKey, merchantId.trim(), operationDate);
       setDailyBalance(balance);
       setBalanceState("available");
     } catch (error) {
@@ -118,7 +113,7 @@ export default function App() {
     setSubmitting(true);
     setMessage(null);
     try {
-      await createTransaction(apiKey.trim(), {
+      await createTransaction(defaultApiKey, {
         merchant_id: merchantId.trim(),
         type: transactionType,
         amount: normalizeAmount(amount),
@@ -145,7 +140,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <ApiSettings apiKey={apiKey} apiStatus={apiStatus} onApiKeyChange={setApiKey} />
+      <ApiSettings apiStatus={apiStatus} />
 
       <section className="operation-context" aria-labelledby="operation-context-title">
         <div className="operation-context__intro">

@@ -27,7 +27,6 @@ function mockFetch(handler: (input: RequestInfo | URL, init?: RequestInit) => Mo
 }
 
 async function fillOperationContext(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByLabelText("Chave de acesso"), "local-dev-key");
   await user.clear(screen.getByLabelText("Comerciante"));
   await user.type(screen.getByLabelText("Comerciante"), "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11");
   await user.clear(screen.getByLabelText("Data"));
@@ -44,13 +43,14 @@ describe("Cash Flow operational portal", () => {
     vi.unstubAllGlobals();
   });
 
-  test("renders the operational shell and disables protected actions without an API key", async () => {
+  test("renders the branded operational shell and keeps technical access hidden", async () => {
     mockFetch(() => healthResponse());
 
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "Cash Flow Portal" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Carrefour Fluxo de Caixa" })).toBeInTheDocument();
     expect(await screen.findByText("Sistema conectado")).toBeInTheDocument();
+    expect(screen.queryByText("Chave de acesso")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Salvar movimentação" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Atualizar movimentações" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Atualizar resumo do dia" })).toBeDisabled();
@@ -194,7 +194,7 @@ describe("Cash Flow operational portal", () => {
     await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Chave de acesso inválida ou ausente.")).toBeInTheDocument();
+      expect(screen.getByText("Não foi possível acessar o sistema. Acione o suporte.")).toBeInTheDocument();
     });
   });
 });
