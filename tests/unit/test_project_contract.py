@@ -79,3 +79,11 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     assert "Overload de leitura" in overload_text
     assert "worker parado" in overload_text
     assert "transaction.created 500 0" in overload_text
+
+
+def test_overload_worker_script_restarts_worker_on_failure():
+    script = Path("tests/load/overload_worker_backlog.sh").read_text()
+
+    assert "cleanup()" in script
+    assert "trap cleanup EXIT" in script
+    assert "docker compose start worker" in script

@@ -17,6 +17,12 @@ PY
 
 MERCHANT_ID="${MERCHANT_ID:-$(new_uuid)}"
 
+cleanup() {
+  docker compose start worker >/dev/null 2>&1 || true
+}
+
+trap cleanup EXIT
+
 docker compose stop worker
 
 initial_queue="$(docker compose exec -T rabbitmq rabbitmqctl list_queues name messages | awk '$1 == "transaction.created" {print $2}')"
@@ -25,7 +31,6 @@ initial_pending="$(docker compose exec -T postgres psql -U cashflow -d cashflow 
 if [ "${initial_queue:-0}" != "0" ] || [ "${initial_pending}" != "0" ]; then
   echo "Expected an empty queue and no pending outbox events before starting."
   echo "initial_queue=${initial_queue:-0} initial_pending_outbox=${initial_pending}"
-  docker compose start worker >/dev/null 2>&1 || true
   exit 1
 fi
 
