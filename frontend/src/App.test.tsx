@@ -384,6 +384,50 @@ describe("Cash Flow operational portal", () => {
     expect(tableBodyRowTexts(table)[0]).toContain("09:01");
   });
 
+  test("renders responsive transaction labels and mobile sorting controls", async () => {
+    mockFetch((input) => {
+      const url = String(input);
+      if (url.includes("/transactions?")) {
+        return jsonResponse(200, [
+          transactionItem({
+            id: "b090bd84-11ce-4dc0-90f8-71859e7f83aa",
+            type: "DEBIT",
+            amount: "50.00",
+            description: "Compra de estoque",
+            occurred_at: "2026-05-20T12:00:00",
+            created_at: "2026-05-20T12:01:00",
+          }),
+          transactionItem({
+            id: "9be6c1c4-d5e6-43b0-9459-f178e15d0345",
+            type: "CREDIT",
+            amount: "10.00",
+            description: "Venda pequena",
+            occurred_at: "2026-05-20T09:00:00",
+            created_at: "2026-05-20T09:01:00",
+          }),
+        ]);
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+    const table = await screen.findByRole("table", { name: "Movimentações financeiras" });
+    const firstTransactionCells = within(table).getAllByRole("row")[1].querySelectorAll("td");
+
+    expect(Array.from(firstTransactionCells).map((cell) => cell.getAttribute("data-label"))).toEqual([
+      "Tipo",
+      "Valor",
+      "Descrição",
+      "Ocorrência",
+      "Criação",
+    ]);
+
+    await user.click(screen.getByRole("button", { name: "Ordenar movimentações por valor" }));
+
+    expect(tableBodyRowTexts(table)[0]).toContain("R$ 10,00");
+  });
+
   test("searches day transactions by visible transaction information", async () => {
     mockFetch((input) => {
       const url = String(input);

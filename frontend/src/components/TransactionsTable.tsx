@@ -160,6 +160,23 @@ export function TransactionsTable({
         </div>
       </div>
 
+      <div className="mobile-sort-controls" aria-label="Ordenação das movimentações">
+        <span className="mobile-sort-controls__label">Ordenar por</span>
+        {sortableColumns.map((column) => (
+          <button
+            aria-label={`Ordenar movimentações por ${column.label.toLowerCase()}`}
+            aria-pressed={sortKey === column.key}
+            className={`sort-chip${sortKey === column.key ? " sort-chip--active" : ""}`}
+            key={column.key}
+            onClick={() => handleSort(column.key)}
+            type="button"
+          >
+            {column.label}
+            <ArrowUpDown size={12} strokeWidth={2.3} aria-hidden="true" />
+          </button>
+        ))}
+      </div>
+
       <div className="table-wrap">
         <table aria-label="Movimentações financeiras">
           <thead>
@@ -192,17 +209,17 @@ export function TransactionsTable({
                   className={`transaction-row transaction-row--${transaction.type.toLowerCase()}`}
                   key={transaction.id}
                 >
-                  <td>
+                  <td data-label="Tipo">
                     <span className={`type-badge type-badge--${transaction.type.toLowerCase()}`}>
                       {formatType(transaction.type)}
                     </span>
                   </td>
-                  <td className={`amount-cell amount-cell--${transaction.type.toLowerCase()}`}>
+                  <td className={`amount-cell amount-cell--${transaction.type.toLowerCase()}`} data-label="Valor">
                     {formatCurrency(transaction.amount)}
                   </td>
-                  <td>{transaction.description ?? "-"}</td>
-                  <td>{formatDateTime(transaction.occurred_at)}</td>
-                  <td>{formatDateTime(transaction.created_at)}</td>
+                  <td data-label="Descrição">{transaction.description ?? "-"}</td>
+                  <td data-label="Ocorrência">{formatDateTime(transaction.occurred_at)}</td>
+                  <td data-label="Criação">{formatDateTime(transaction.created_at)}</td>
                 </tr>
               ))
             )}

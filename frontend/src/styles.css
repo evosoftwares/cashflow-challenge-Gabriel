@@ -710,6 +710,37 @@ th {
   color: var(--primary-hover);
 }
 
+.mobile-sort-controls {
+  display: none;
+}
+
+.sort-chip {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--muted-strong);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 850;
+  padding: 0 10px;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.sort-chip--active,
+.sort-chip:hover {
+  border-color: var(--primary-soft);
+  background: #eaf4ff;
+  color: var(--primary-hover);
+}
+
 td {
   color: var(--text);
   font-size: 0.84rem;
@@ -867,5 +898,114 @@ td {
 
   .balance-hero strong {
     font-size: 2rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .transactions-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .transactions-search,
+  .transactions-filter {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mobile-sort-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 12px 0;
+  }
+
+  .mobile-sort-controls__label {
+    flex-basis: 100%;
+    color: var(--muted-strong);
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  table {
+    min-width: 0;
+    border-collapse: separate;
+    background: transparent;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  tbody tr {
+    display: grid;
+    gap: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    padding: 12px;
+    box-shadow: 0 10px 22px rgb(16 24 40 / 6%);
+  }
+
+  .transaction-row--credit {
+    border-left: 4px solid var(--primary);
+  }
+
+  .transaction-row--debit {
+    border-left: 4px solid var(--brand-red);
+  }
+
+  .transaction-row:hover {
+    background: #fff;
+  }
+
+  .transaction-row--credit td:first-child,
+  .transaction-row--debit td:first-child {
+    box-shadow: none;
+  }
+
+  td {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(82px, 34%) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    border-bottom: 0;
+    padding: 0;
+    overflow-wrap: anywhere;
+  }
+
+  td::before {
+    content: attr(data-label);
+    color: var(--muted-strong);
+    font-size: 0.66rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .empty-row {
+    display: block;
+    padding: 4px 0;
+  }
+
+  .empty-row::before {
+    content: none;
+  }
+
+  .type-badge {
+    width: fit-content;
+    min-width: 0;
   }
 }
