@@ -5,7 +5,7 @@
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   font-synthesis: none;
-  line-height: 1.5;
+  line-height: 1.45;
   text-rendering: optimizeLegibility;
   --background: #f7f9fc;
   --surface: #ffffff;
@@ -57,7 +57,7 @@ select {
 }
 
 button {
-  min-height: 42px;
+  min-height: 36px;
 }
 
 h1,
@@ -68,7 +68,7 @@ p {
 
 h1 {
   color: var(--text);
-  font-size: clamp(1.45rem, 1.1rem + 1vw, 2rem);
+  font-size: clamp(1.28rem, 1rem + 0.8vw, 1.62rem);
   font-weight: 850;
   letter-spacing: 0;
   line-height: 1.05;
@@ -76,7 +76,7 @@ h1 {
 
 h2 {
   color: var(--text);
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: 850;
   letter-spacing: 0;
   line-height: 1.2;
@@ -84,13 +84,13 @@ h2 {
 
 p {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.82rem;
 }
 
 .app-shell {
   width: min(980px, calc(100% - 40px));
   margin: 0 auto;
-  padding: 26px 0 44px;
+  padding: 18px 0 34px;
 }
 
 .app-header,
@@ -107,22 +107,22 @@ p {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 18px 20px;
+  gap: 18px;
+  padding: 14px 16px;
   backdrop-filter: blur(10px);
 }
 
 .brand-block {
   display: flex;
-  min-width: 260px;
+  min-width: 230px;
   align-items: center;
-  gap: 13px;
+  gap: 10px;
 }
 
 .brand-mark {
   display: grid;
-  width: 46px;
-  height: 46px;
+  width: 38px;
+  height: 38px;
   flex: 0 0 auto;
   place-items: center;
   border: 1px solid #d8e4f3;
@@ -141,8 +141,8 @@ p {
 
 .brand-mark__left,
 .brand-mark__right {
-  width: 13px;
-  height: 28px;
+  width: 10px;
+  height: 23px;
   border-radius: 4px;
 }
 
@@ -158,7 +158,7 @@ p {
 
 .brand-mark__center {
   color: var(--primary);
-  font-size: 1.15rem;
+  font-size: 0.98rem;
   font-weight: 950;
   line-height: 1;
 }
@@ -179,19 +179,19 @@ p {
   border-radius: 999px;
   background: var(--surface-muted);
   color: var(--muted-strong);
-  font-size: 0.84rem;
+  font-size: 0.76rem;
   font-weight: 800;
   white-space: nowrap;
 }
 
 .api-status {
-  min-height: 40px;
-  padding: 0 13px;
+  min-height: 32px;
+  padding: 0 11px;
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   flex: 0 0 auto;
   border-radius: 999px;
   background: currentColor;
@@ -214,7 +214,7 @@ p {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 7px;
+  gap: 5px;
 }
 
 .field span,
@@ -223,7 +223,7 @@ p {
   align-items: center;
   gap: 6px;
   color: var(--muted-strong);
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   font-weight: 850;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -232,12 +232,13 @@ p {
 .field input,
 .field select {
   width: 100%;
-  min-height: 44px;
+  min-height: 38px;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: #fff;
   color: var(--text);
-  padding: 0 12px;
+  padding: 0 10px;
+  font-size: 0.88rem;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
@@ -260,22 +261,22 @@ p {
 .operation-context {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
-  margin-top: 18px;
-  padding: 18px;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px 16px;
 }
 
 .operation-context__intro {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
 }
 
 .context-state {
   width: fit-content;
-  min-height: 34px;
-  padding: 0 11px;
+  min-height: 30px;
+  padding: 0 10px;
 }
 
 .context-state--ready {
@@ -286,8 +287,8 @@ p {
 
 .context-grid {
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) minmax(170px, 0.36fr) auto;
-  gap: 12px;
+  grid-template-columns: minmax(300px, 1fr) minmax(150px, 0.34fr) auto;
+  gap: 10px;
   align-items: end;
 }
 
@@ -298,16 +299,16 @@ p {
 .status-message {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 16px;
-  padding: 12px 14px;
-  font-size: 0.92rem;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  font-size: 0.84rem;
   font-weight: 800;
 }
 
 .status-message__dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   flex: 0 0 auto;
   border-radius: 999px;
   background: currentColor;
@@ -340,12 +341,12 @@ p {
 .workspace-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.98fr);
-  gap: 18px;
-  margin-top: 18px;
+  gap: 14px;
+  margin-top: 14px;
 }
 
 .panel {
-  padding: 18px;
+  padding: 14px 16px;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
@@ -359,8 +360,8 @@ p {
 
 .panel-header {
   display: flex;
-  gap: 14px;
-  margin-bottom: 18px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .panel-header--row {
@@ -371,7 +372,7 @@ p {
 .form-grid {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
-  gap: 14px;
+  gap: 12px;
 }
 
 .field--wide,
@@ -383,7 +384,7 @@ p {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 7px;
+  gap: 5px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -392,27 +393,27 @@ p {
 .segmented-control {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  min-height: 44px;
+  gap: 5px;
+  min-height: 38px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #f1f5f9;
-  padding: 4px;
+  padding: 3px;
 }
 
 .segmented-control__option {
   display: inline-flex;
   min-width: 0;
-  min-height: 34px;
+  min-height: 30px;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 6px;
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
   color: var(--muted-strong);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 850;
   transition:
     background-color 160ms ease,
@@ -437,14 +438,14 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   border: 1px solid transparent;
   border-radius: 7px;
   cursor: pointer;
-  font-size: 0.92rem;
+  font-size: 0.84rem;
   font-weight: 850;
   letter-spacing: 0;
-  padding: 0 16px;
+  padding: 0 12px;
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
@@ -490,8 +491,8 @@ p {
 }
 
 .balance-state {
-  min-height: 32px;
-  padding: 0 11px;
+  min-height: 28px;
+  padding: 0 10px;
 }
 
 .balance-state--available {
@@ -516,25 +517,25 @@ p {
 .balance-hero {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 14px;
+  gap: 10px;
   align-items: start;
   border: 1px solid #b8d5f3;
   border-radius: 8px;
   background:
     linear-gradient(135deg, #f4f9ff 0%, #eef5ff 100%),
     #f4f9ff;
-  padding: 18px;
+  padding: 14px;
 }
 
 .balance-hero p {
-  margin-top: 12px;
+  margin-top: 8px;
   color: var(--muted-strong);
   font-weight: 700;
 }
 
 .balance-hero strong {
   color: var(--primary-hover);
-  font-size: clamp(2rem, 5vw, 3rem);
+  font-size: clamp(1.65rem, 4vw, 2.35rem);
   font-weight: 900;
   letter-spacing: 0;
   line-height: 0.95;
@@ -544,32 +545,32 @@ p {
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 14px 0 0;
+  gap: 10px;
+  margin: 12px 0 0;
 }
 
 .metric-card {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
-  padding: 13px;
+  padding: 10px;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%);
 }
 
 .metric-card dt {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   color: var(--muted-strong);
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 850;
   text-transform: uppercase;
 }
 
 .metric-card dd {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   color: var(--text);
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 900;
 }
 
@@ -586,7 +587,7 @@ p {
 }
 
 .transactions-panel {
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .table-wrap {
@@ -598,7 +599,7 @@ p {
 
 table {
   width: 100%;
-  min-width: 820px;
+  min-width: 760px;
   border-collapse: collapse;
   background: #fff;
 }
@@ -606,7 +607,7 @@ table {
 th,
 td {
   border-bottom: 1px solid var(--border);
-  padding: 13px 12px;
+  padding: 10px;
   text-align: left;
   vertical-align: middle;
 }
@@ -618,14 +619,14 @@ tr:last-child td {
 th {
   background: #f8fafc;
   color: var(--muted-strong);
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 900;
   text-transform: uppercase;
 }
 
 td {
   color: var(--text);
-  font-size: 0.92rem;
+  font-size: 0.84rem;
 }
 
 .amount-cell {
@@ -636,17 +637,17 @@ td {
 
 .empty-row {
   color: var(--muted);
-  padding: 22px 12px;
+  padding: 18px 10px;
   text-align: center;
 }
 
 .type-badge {
   display: inline-flex;
-  min-width: 76px;
+  min-width: 70px;
   justify-content: center;
   border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 0.8rem;
+  padding: 4px 9px;
+  font-size: 0.74rem;
   font-weight: 900;
 }
 
