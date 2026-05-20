@@ -30,8 +30,22 @@ def upgrade() -> None:
         sa.CheckConstraint('amount > 0', name='ck_transactions_amount_positive'),
         sa.PrimaryKeyConstraint('id'),
     )
-    op.create_index('ix_transactions_merchant_id', 'transactions', ['merchant_id'])
     op.create_index('ix_transactions_merchant_occurred_at', 'transactions', ['merchant_id', 'occurred_at'])
+
+    op.create_table(
+        'outbox_events',
+        sa.Column('id', sa.Uuid(), nullable=False),
+        sa.Column('event_type', sa.String(length=100), nullable=False),
+        sa.Column('payload', sa.JSON(), nullable=False),
+        sa.Column('status', sa.String(length=20), server_default=sa.text("'PENDING'"), nullable=False),
+        sa.Column('attempts', sa.Integer(), server_default=sa.text('0'), nullable=False),
+        sa.Column('last_error', sa.String(length=500), nullable=True),
+        sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('published_at', sa.DateTime(), nullable=True),
+        sa.CheckConstraint("status IN ('PENDING', 'PUBLISHED', 'FAILED')", name='ck_outbox_events_status'),
+        sa.PrimaryKeyConstraint('id'),
+    )
+    op.create_index('ix_outbox_events_status_created_at', 'outbox_events', ['status', 'created_at'])
 
     op.create_table(
         'daily_balances',
@@ -45,21 +59,21 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('merchant_id', 'balance_date', name='uq_daily_balances_merchant_date'),
     )
-    op.create_index('ix_daily_balances_merchant_date', 'daily_balances', ['merchant_id', 'balance_date'])
 
     op.create_table(
         'processed_events',
         sa.Column('event_id', sa.Uuid(), nullable=False),
         sa.Column('transaction_id', sa.Uuid(), nullable=False),
         sa.Column('processed_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+        sa.ForeignKeyConstraint(['transaction_id'], ['transactions.id'], name='fk_processed_events_transaction_id'),
         sa.PrimaryKeyConstraint('event_id'),
     )
 
 
 def downgrade() -> None:
     op.drop_table('processed_events')
-    op.drop_index('ix_daily_balances_merchant_date', table_name='daily_balances')
     op.drop_table('daily_balances')
+    op.drop_index('ix_outbox_events_status_created_at', table_name='outbox_events')
+    op.drop_table('outbox_events')
     op.drop_index('ix_transactions_merchant_occurred_at', table_name='transactions')
-    op.drop_index('ix_transactions_merchant_id', table_name='transactions')
     op.drop_table('transactions')

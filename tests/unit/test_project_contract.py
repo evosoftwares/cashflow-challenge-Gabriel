@@ -12,6 +12,20 @@ def test_alembic_configuration_is_versioned():
     assert re.search(r"op\.create_table\(\s*'transactions'", migration)
     assert re.search(r"op\.create_table\(\s*'daily_balances'", migration)
     assert re.search(r"op\.create_table\(\s*'processed_events'", migration)
+    assert re.search(r"op\.create_table\(\s*'outbox_events'", migration)
+    assert "ix_daily_balances_merchant_date" not in migration
+    assert "ix_transactions_merchant_id" not in migration
+    assert "ForeignKeyConstraint(['transaction_id'], ['transactions.id']" in migration
+
+
+def test_sql_manual_migration_matches_alembic_contract():
+    sql = Path("src/database/migrations/001_initial_schema.sql").read_text()
+
+    assert "CREATE TABLE outbox_events" in sql
+    assert "FOREIGN KEY (transaction_id) REFERENCES transactions(id)" in sql
+    assert "CREATE INDEX ix_transactions_merchant_occurred_at" in sql
+    assert "CREATE INDEX ix_daily_balances_merchant_date" not in sql
+    assert "CREATE INDEX ix_transactions_merchant_id" not in sql
 
 
 def test_runtime_schema_is_owned_by_alembic_only():
@@ -44,6 +58,7 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
 
     scalability_text = scalability.read_text()
     assert "upsert atômico" in scalability_text
+    assert "ON CONFLICT" in scalability_text
     assert "Outbox Pattern" in scalability_text
     assert "Dead Letter Queue" in scalability_text
     assert "daily_balances" in scalability_text
@@ -53,3 +68,7 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     assert "docker compose start worker" in docker_e2e_text
     assert "rabbitmqctl list_queues" in docker_e2e_text
     assert "daily-balances" in docker_e2e_text
+
+    compose_text = Path("docker-compose.yml").read_text()
+    assert "outbox-dispatcher" in compose_text
+    assert "python -m src.messaging.outbox_dispatcher" in compose_text

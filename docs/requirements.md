@@ -36,7 +36,7 @@ A solução prioriza simplicidade operacional, separação de responsabilidades 
 
 ## Aderência
 
-O requisito de disponibilidade do controle de lançamentos é atendido ao salvar a transação no PostgreSQL e publicar uma mensagem durável no RabbitMQ. A consolidação acontece em um worker separado, portanto a parada do worker não impede o endpoint `POST /transactions`.
+O requisito de disponibilidade do controle de lançamentos é atendido ao salvar a transação no PostgreSQL e registrar o evento em `outbox_events` na mesma transação. O Outbox Dispatcher publica a mensagem durável no RabbitMQ. A consolidação acontece em um worker separado, portanto a parada do worker não impede o endpoint `POST /transactions`.
 
 O requisito de 50 requisições por segundo para consulta do consolidado é coberto por um script k6 em `tests/load/daily_balance_50rps.js`, com threshold `http_req_failed < 5%`.
 

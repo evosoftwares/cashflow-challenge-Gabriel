@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Date, DateTime, Index, Numeric, Uuid, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, ForeignKey, Numeric, Uuid, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.connection import Base
@@ -12,7 +12,6 @@ class DailyBalance(Base):
     __tablename__ = "daily_balances"
     __table_args__ = (
         UniqueConstraint("merchant_id", "balance_date", name="uq_daily_balances_merchant_date"),
-        Index("ix_daily_balances_merchant_date", "merchant_id", "balance_date"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
@@ -33,7 +32,11 @@ class ProcessedEvent(Base):
     __tablename__ = "processed_events"
 
     event_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
-    transaction_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
+    transaction_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("transactions.id", name="fk_processed_events_transaction_id"),
+        nullable=False,
+    )
     processed_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,

@@ -8,17 +8,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from src.database.connection import Base
+from src.messaging.models import OutboxEvent
 from src.transactions.models import Transaction
 from src.transactions.schemas import TransactionCreate
 from src.transactions.service import create_transaction
-
-
-class FakePublisher:
-    def __init__(self):
-        self.events = []
-
-    def publish_transaction_created(self, event):
-        self.events.append(event)
 
 
 @pytest.fixture()
@@ -33,8 +26,7 @@ def db_session():
         session.close()
 
 
-def test_create_credit_transaction_persists_and_publishes_event(db_session):
-    publisher = FakePublisher()
+def test_create_credit_transaction_persists_transaction_and_outbox_event(db_session):
     merchant_id = uuid4()
     payload = TransactionCreate(
         merchant_id=merchant_id,
@@ -44,24 +36,24 @@ def test_create_credit_transaction_persists_and_publishes_event(db_session):
         occurred_at=datetime(2026, 5, 20, 10, 0, 0),
     )
 
-    transaction = create_transaction(db_session, payload, publisher)
+    transaction = create_transaction(db_session, payload)
 
     saved = db_session.get(Transaction, transaction.id)
+    outbox_event = db_session.query(OutboxEvent).one()
     assert saved is not None
     assert saved.type == "CREDIT"
     assert saved.amount == Decimal("100.00")
-    assert len(publisher.events) == 1
-    event = publisher.events[0]
-    assert UUID(event["event_id"])
-    assert event["event_type"] == "TRANSACTION_CREATED"
-    assert event["transaction_id"] == str(transaction.id)
-    assert event["merchant_id"] == str(merchant_id)
-    assert event["transaction_type"] == "CREDIT"
-    assert event["amount"] == "100.00"
+    assert outbox_event.event_type == "TRANSACTION_CREATED"
+    assert outbox_event.status == "PENDING"
+    assert UUID(str(outbox_event.id))
+    assert outbox_event.payload["event_id"] == str(outbox_event.id)
+    assert outbox_event.payload["transaction_id"] == str(transaction.id)
+    assert outbox_event.payload["merchant_id"] == str(merchant_id)
+    assert outbox_event.payload["transaction_type"] == "CREDIT"
+    assert outbox_event.payload["amount"] == "100.00"
 
 
-def test_create_debit_transaction_persists_and_publishes_event(db_session):
-    publisher = FakePublisher()
+def test_create_debit_transaction_persists_outbox_event(db_session):
     payload = TransactionCreate(
         merchant_id=uuid4(),
         type="DEBIT",
@@ -70,12 +62,14 @@ def test_create_debit_transaction_persists_and_publishes_event(db_session):
         occurred_at=datetime(2026, 5, 20, 11, 0, 0),
     )
 
-    transaction = create_transaction(db_session, payload, publisher)
+    transaction = create_transaction(db_session, payload)
 
     saved = db_session.get(Transaction, transaction.id)
+    outbox_event = db_session.query(OutboxEvent).one()
     assert saved.type == "DEBIT"
-    assert publisher.events[0]["transaction_type"] == "DEBIT"
-    assert publisher.events[0]["amount"] == "35.50"
+    assert outbox_event.payload["transaction_id"] == str(transaction.id)
+    assert outbox_event.payload["transaction_type"] == "DEBIT"
+    assert outbox_event.payload["amount"] == "35.50"
 
 
 def test_rejects_negative_amount():

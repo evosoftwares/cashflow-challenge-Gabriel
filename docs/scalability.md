@@ -9,7 +9,8 @@ O objetivo não é entregar uma arquitetura de hiperescala desde o início, mas 
 ## O que escala na arquitetura atual
 
 - A API FastAPI pode ser escalada horizontalmente com mais réplicas.
-- O worker de consolidação pode ser escalado horizontalmente para aumentar vazão de consumo da fila, desde que a evolução para upsert atômico seja priorizada quando houver alta concorrência no mesmo saldo diário.
+- O worker de consolidação pode ser escalado horizontalmente para aumentar vazão de consumo da fila, com menor risco porque a atualização do saldo diário usa upsert atômico.
+- O Outbox Dispatcher pode ser escalado horizontalmente para aumentar vazão de publicação dos eventos pendentes.
 - RabbitMQ funciona como buffer para absorver picos temporários de eventos.
 - PostgreSQL atende ao volume proposto pelo desafio com schema simples, tipos numéricos adequados e restrições de integridade.
 - A arquitetura modular permite extrair módulos para serviços independentes se os domínios crescerem.
@@ -18,15 +19,15 @@ O objetivo não é entregar uma arquitetura de hiperescala desde o início, mas 
 
 O principal gargalo esperado não é o endpoint HTTP de lançamento. O ponto mais sensível é a atualização concorrente de `daily_balances` para o mesmo `merchant_id` e a mesma `balance_date`.
 
-Em um cenário com muitos eventos do mesmo comerciante no mesmo dia, múltiplos workers podem disputar a mesma linha de saldo consolidado. Isso é aceitável para o escopo do desafio, mas precisa ser observado caso o volume cresça rapidamente.
+Em um cenário com muitos eventos do mesmo comerciante no mesmo dia, múltiplos workers podem disputar a mesma linha de saldo consolidado. A implementação usa upsert atômico no PostgreSQL para reduzir risco de perda de atualização, mas a contenção nessa linha ainda precisa ser monitorada caso o volume cresça rapidamente.
 
-Antes de ampliar agressivamente a quantidade de workers em produção, a primeira melhoria recomendada é trocar a atualização em memória do saldo por um upsert atômico no PostgreSQL, usando `INSERT ... ON CONFLICT ... DO UPDATE`. Isso evita perda de atualização quando dois eventos do mesmo comerciante e da mesma data são processados em paralelo.
+O saldo é atualizado com `INSERT ... ON CONFLICT ... DO UPDATE`, evitando a estratégia frágil de ler o saldo, alterar em memória e gravar depois.
 
-Outro limite conhecido é a ausência do Outbox Pattern completo. A implementação atual persiste a transação e publica o evento em seguida. Para produção crítica, o Outbox deve entrar junto do upsert atômico como primeira evolução técnica, garantindo consistência entre banco e fila mesmo se ocorrer falha entre o commit da transação e a publicação do evento.
+Outro ponto já tratado é a publicação confiável. A implementação registra o evento em `outbox_events` na mesma transação do lançamento. Um dispatcher separado publica no RabbitMQ e marca o evento como publicado.
 
-## Primeira evolução técnica recomendada
+## Endurecimentos SQL implementados
 
-Antes de adotar Kafka, Kubernetes, sharding ou microsserviços independentes, as duas primeiras evoluções técnicas devem ser:
+Antes de adotar Kafka, Kubernetes, sharding ou microsserviços independentes, a solução já aplica dois endurecimentos técnicos:
 
 1. Upsert atômico no consolidado.
 2. Outbox Pattern na publicação de eventos.
@@ -71,7 +72,7 @@ A criação do lançamento e o registro do evento devem acontecer na mesma trans
 1. Salvar o lançamento em `transactions`.
 2. Salvar o evento pendente em `outbox_events`.
 3. Confirmar a transação.
-4. Um publicador separado lê `outbox_events`, publica no RabbitMQ e marca o evento como publicado.
+4. O Outbox Dispatcher lê `outbox_events`, publica no RabbitMQ e marca o evento como publicado.
 
 Isso evita o cenário em que a transação financeira é salva, mas o evento não chega à fila por falha temporária no RabbitMQ ou na rede.
 
@@ -88,18 +89,17 @@ Os principais sinais de que a solução precisa evoluir são:
 
 ## Plano de evolução se o sistema escalar rápido demais
 
-### Camada 1 - Primeira evolução técnica
+### Camada 1 - Escala operacional da solução atual
 
-- Implementar upsert atômico em `daily_balances`.
-- Implementar Outbox Pattern para publicação confiável de eventos.
+- Escalar horizontalmente a API.
+- Escalar horizontalmente os workers.
+- Escalar horizontalmente o Outbox Dispatcher.
 - Adicionar métricas mínimas de fila, publicação e consolidação.
 
-Essa camada remove os dois riscos mais importantes antes de aumentar a concorrência do processamento.
+Essa camada usa os endurecimentos já implementados e aumenta capacidade sem mudar a arquitetura.
 
 ### Camada 2 - Absorver pico imediato
 
-- Escalar horizontalmente a API.
-- Escalar horizontalmente os workers após a evolução para upsert atômico.
 - Ajustar pool de conexões com PostgreSQL.
 - Aumentar recursos do PostgreSQL e RabbitMQ.
 - Monitorar tamanho da fila, taxa de consumo, falhas e latência de consolidação.
@@ -146,8 +146,8 @@ flowchart TD
     START[Volume atual do desafio]
     CURRENT[Monólito modular<br/>PostgreSQL<br/>RabbitMQ<br/>Worker assíncrono]
     ALERTS{Sinais de saturação?}
-    L1[Camada 1<br/>Upsert atômico<br/>Outbox Pattern]
-    L2[Camada 2<br/>Escalar API e workers<br/>Ajustar recursos e pool]
+    L1[Camada 1<br/>Escalar API, workers<br/>e Outbox Dispatcher]
+    L2[Camada 2<br/>Ajustar recursos<br/>pool e monitoramento]
     L3[Camada 3<br/>DLQ, retry<br/>métricas e alertas]
     L4[Camada 4<br/>Batch, particionamento<br/>cache e read replica]
     L5[Camada 5<br/>serviços independentes<br/>broker de maior escala<br/>sharding e autoscaling]
@@ -164,4 +164,4 @@ flowchart TD
 
 ## Resposta arquitetural
 
-A arquitetura atual suporta o crescimento esperado pelo desafio e tem um caminho claro de evolução. Ela não promete escala infinita, mas entrega uma fundação correta: desacoplamento assíncrono, idempotência, persistência transacional, worker separado e documentação explícita dos próximos passos.
+A arquitetura atual suporta o crescimento esperado pelo desafio e tem um caminho claro de evolução. Ela não promete escala infinita, mas entrega uma fundação correta: desacoplamento assíncrono, idempotência, persistência transacional, Outbox Pattern, upsert atômico, worker separado e documentação explícita dos próximos passos.

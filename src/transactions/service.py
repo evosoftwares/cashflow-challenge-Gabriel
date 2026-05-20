@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
+from src.messaging.outbox import OutboxRepository
 from src.transactions.models import Transaction
 from src.transactions.repository import TransactionRepository
 from src.transactions.schemas import TransactionCreate
@@ -13,15 +14,11 @@ logger = logging.getLogger(__name__)
 MONEY_QUANTIZER = Decimal("0.01")
 
 
-class MessagePublishError(RuntimeError):
-    pass
-
-
 def money(value: Decimal) -> Decimal:
     return Decimal(value).quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP)
 
 
-def create_transaction(db: Session, payload: TransactionCreate, publisher) -> Transaction:
+def create_transaction(db: Session, payload: TransactionCreate) -> Transaction:
     transaction = Transaction(
         id=uuid4(),
         merchant_id=payload.merchant_id,
@@ -32,17 +29,11 @@ def create_transaction(db: Session, payload: TransactionCreate, publisher) -> Tr
     )
 
     repository = TransactionRepository(db)
-    saved = repository.save(transaction)
+    saved = repository.add(transaction)
     event = build_transaction_created_event(saved)
-
-    try:
-        publisher.publish_transaction_created(event)
-    except Exception as exc:
-        logger.exception(
-            "transaction_event_publish_failed",
-            extra={"transaction_id": str(saved.id), "merchant_id": str(saved.merchant_id)},
-        )
-        raise MessagePublishError("Could not publish transaction event") from exc
+    OutboxRepository(db).add_pending(event)
+    db.commit()
+    db.refresh(saved)
 
     logger.info(
         json.dumps(

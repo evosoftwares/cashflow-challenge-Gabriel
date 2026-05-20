@@ -24,7 +24,7 @@ def apply_transaction_created_event(db: Session, event: dict[str, str]) -> str:
     event_id = UUID(event["event_id"])
     transaction_id = UUID(event["transaction_id"])
 
-    if repository.has_processed_event(event_id):
+    if not repository.try_mark_event_processed(event_id=event_id, transaction_id=transaction_id):
         logger.info(
             json.dumps(
                 {
@@ -44,10 +44,6 @@ def apply_transaction_created_event(db: Session, event: dict[str, str]) -> str:
         balance_date=occurred_at.date(),
         transaction_type=event["transaction_type"],
         amount=amount,
-    )
-    repository.mark_event_processed(
-        event_id=event_id,
-        transaction_id=transaction_id,
     )
     db.commit()
 

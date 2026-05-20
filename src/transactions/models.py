@@ -17,7 +17,7 @@ class Transaction(Base):
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
-    merchant_id: Mapped[UUID] = mapped_column(Uuid, nullable=False, index=True)
+    merchant_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
     type: Mapped[str] = mapped_column(String(10), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)

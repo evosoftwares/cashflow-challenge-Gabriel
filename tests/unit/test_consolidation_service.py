@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from src.consolidation.models import DailyBalance, ProcessedEvent
 from src.consolidation.service import apply_transaction_created_event
 from src.database.connection import Base
+from src.transactions.models import Transaction  # noqa: F401
 
 
 @pytest.fixture()
@@ -94,3 +95,25 @@ def test_ignores_duplicate_event(db_session):
     assert balance.total_credit == Decimal("100.00")
     assert balance.balance == Decimal("100.00")
     assert db_session.query(ProcessedEvent).count() == 1
+
+
+def test_multiple_events_accumulate_using_atomic_upsert(db_session):
+    merchant_id = uuid4()
+
+    apply_transaction_created_event(
+        db_session,
+        transaction_event(merchant_id=merchant_id, transaction_type="CREDIT", amount="100.00"),
+    )
+    apply_transaction_created_event(
+        db_session,
+        transaction_event(merchant_id=merchant_id, transaction_type="CREDIT", amount="50.00"),
+    )
+    apply_transaction_created_event(
+        db_session,
+        transaction_event(merchant_id=merchant_id, transaction_type="DEBIT", amount="25.00"),
+    )
+
+    balance = db_session.query(DailyBalance).one()
+    assert balance.total_credit == Decimal("150.00")
+    assert balance.total_debit == Decimal("25.00")
+    assert balance.balance == Decimal("125.00")

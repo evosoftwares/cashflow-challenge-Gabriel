@@ -19,7 +19,8 @@ flowchart TD
     USER -->|Registra créditos e débitos| SYSTEM
     USER -->|Consulta saldo diário consolidado| SYSTEM
     SYSTEM -->|Persiste lançamentos| DB[(PostgreSQL)]
-    SYSTEM -->|Publica eventos de lançamento| MQ[RabbitMQ]
+    SYSTEM -->|Registra eventos pendentes| OUTBOX[(Outbox Events)]
+    OUTBOX -->|Publica eventos de lançamento| MQ[RabbitMQ]
     MQ -->|Entrega eventos| WORKER[Worker de Consolidação]
     WORKER -->|Atualiza saldo diário| DB
 ```
@@ -47,6 +48,8 @@ flowchart TD
         end
     end
     DB[(PostgreSQL)]
+    OUTBOX[(PostgreSQL - outbox_events)]
+    DISPATCHER[Outbox Dispatcher]
     MQ[RabbitMQ<br/>Queue: transaction.created]
     WORKER[Consolidation Worker]
     CLIENT -->|HTTP Request| API
@@ -54,13 +57,15 @@ flowchart TD
     TRoutes --> TService
     TService --> TRepo
     TRepo -->|Salva lançamento| DB
-    TService --> Publisher
+    TService -->|Registra evento pendente| OUTBOX
+    OUTBOX --> DISPATCHER
+    DISPATCHER --> Publisher
     Publisher -->|Publica evento| MQ
     MQ -->|Entrega evento| WORKER
     WORKER --> Consumer
     Consumer --> CService
     CService --> CRepo
-    CRepo -->|Atualiza saldo diário| DB
+    CRepo -->|Upsert atômico no saldo diário| DB
     API --> CRoutes
     CRoutes --> CService
     CService -->|Consulta saldo consolidado| DB
@@ -74,6 +79,7 @@ sequenceDiagram
     participant API as FastAPI
     participant Transaction as Módulo de Lançamentos
     participant DB as PostgreSQL
+    participant Dispatcher as Outbox Dispatcher
     participant MQ as RabbitMQ
     participant Worker as Worker de Consolidação
     participant Consolidation as Módulo de Consolidação
@@ -81,14 +87,16 @@ sequenceDiagram
     API->>Transaction: Validar dados do lançamento
     Transaction->>DB: Salvar lançamento em transactions
     DB-->>Transaction: Lançamento salvo
-    Transaction->>MQ: Publicar evento transaction.created
-    MQ-->>Transaction: Evento recebido
+    Transaction->>DB: Salvar evento em outbox_events
     Transaction-->>API: Retornar 201 Created
     API-->>User: Lançamento criado com sucesso
+    Dispatcher->>DB: Buscar eventos pendentes
+    Dispatcher->>MQ: Publicar transaction.created
+    Dispatcher->>DB: Marcar evento como publicado
     MQ->>Worker: Entregar evento pendente
     Worker->>Consolidation: Processar evento
     Consolidation->>DB: Verificar processed_events
-    Consolidation->>DB: Atualizar daily_balances
+    Consolidation->>DB: Upsert atômico em daily_balances
     Consolidation->>DB: Registrar event_id processado
     Worker->>MQ: ACK da mensagem
 ```
@@ -98,10 +106,11 @@ Fluxo:
 1. Cliente chama `POST /transactions`.
 2. API valida os dados.
 3. Lançamento é salvo no banco.
-4. Evento `transaction.created` é publicado no RabbitMQ.
+4. Evento `transaction.created` é registrado em `outbox_events`.
 5. API retorna sucesso.
-6. Worker consome o evento.
-7. Worker atualiza o saldo diário.
+6. Outbox Dispatcher publica o evento no RabbitMQ.
+7. Worker consome o evento.
+8. Worker atualiza o saldo diário com upsert atômico.
 
 ## Fluxo de resiliência
 
@@ -111,6 +120,7 @@ sequenceDiagram
     participant API as FastAPI
     participant Transaction as Módulo de Lançamentos
     participant DB as PostgreSQL
+    participant Dispatcher as Outbox Dispatcher
     participant MQ as RabbitMQ
     participant Worker as Worker de Consolidação
     Note over Worker: Worker indisponível
@@ -118,22 +128,25 @@ sequenceDiagram
     API->>Transaction: Criar lançamento
     Transaction->>DB: Salvar lançamento
     DB-->>Transaction: Lançamento salvo
-    Transaction->>MQ: Publicar evento transaction.created
-    MQ-->>Transaction: Mensagem armazenada na fila
+    Transaction->>DB: Salvar evento em outbox_events
     Transaction-->>API: 201 Created
     API-->>User: Lançamento criado com sucesso
+    Dispatcher->>DB: Buscar eventos pendentes
+    Dispatcher->>MQ: Publicar transaction.created
+    Dispatcher->>DB: Marcar evento como publicado
     Note over MQ: Evento permanece aguardando consumo
     Note over Worker: Worker volta a ficar disponível
     MQ->>Worker: Entregar evento pendente
-    Worker->>DB: Atualizar daily_balances
+    Worker->>DB: Upsert atômico em daily_balances
     Worker->>MQ: ACK da mensagem
 ```
 
 Se o worker de consolidação estiver indisponível:
 
 1. O lançamento continua sendo salvo.
-2. A mensagem fica na fila.
-3. Quando o worker volta, a mensagem é processada.
+2. O evento fica em `outbox_events` até ser publicado.
+3. A mensagem fica na fila RabbitMQ se o worker estiver parado.
+4. Quando o worker volta, a mensagem é processada.
 
 ## Diagrama de domínios e capacidades
 
@@ -149,7 +162,7 @@ flowchart LR
         CRED[Registrar Crédito]
         DEB[Registrar Débito]
         VAL[Validar Lançamento]
-        EVT[Publicar Evento]
+        EVT[Registrar Evento no Outbox]
     end
     subgraph DOMAIN2[Domínio de Consolidação]
         CONSUME[Consumir Evento]
@@ -199,7 +212,18 @@ erDiagram
         uuid transaction_id
         datetime processed_at
     }
+    OUTBOX_EVENTS {
+        uuid id PK
+        string event_type
+        json payload
+        string status
+        int attempts
+        string last_error
+        datetime created_at
+        datetime published_at
+    }
     TRANSACTIONS ||--o| PROCESSED_EVENTS : generates
+    TRANSACTIONS ||--o| OUTBOX_EVENTS : registers
     TRANSACTIONS }o--|| DAILY_BALANCES : contributes_to
 ```
 
@@ -232,9 +256,13 @@ Armazena a visão consolidada por comerciante e data. A restrição única em `m
 
 Armazena os `event_id` já processados pelo worker. Essa tabela garante idempotência quando o RabbitMQ reentrega uma mensagem.
 
+### outbox_events
+
+Armazena eventos pendentes de publicação no RabbitMQ. O lançamento e o evento são gravados na mesma transação de banco, reduzindo o risco de salvar uma transação financeira sem publicar o evento correspondente.
+
 ## Migrations
 
-O schema é versionado com Alembic. No Docker Compose, o serviço `migrate` executa `alembic upgrade head` antes da API e do worker.
+O schema é versionado com Alembic. No Docker Compose, o serviço `migrate` executa `alembic upgrade head` antes da API, do worker e do Outbox Dispatcher.
 
 ## Banco remoto
 
@@ -242,9 +270,9 @@ Supabase não foi usado nesta entrega. A arquitetura alvo usa PostgreSQL e a exe
 
 ## Escalabilidade
 
-A arquitetura escala de forma proporcional ao escopo do desafio. A API pode ser replicada horizontalmente, o worker pode ganhar mais instâncias e o RabbitMQ absorve picos temporários mantendo lançamento e consolidação desacoplados.
+A arquitetura escala de forma proporcional ao escopo do desafio. A API pode ser replicada horizontalmente, o worker e o Outbox Dispatcher podem ganhar mais instâncias, e o RabbitMQ absorve picos temporários mantendo lançamento e consolidação desacoplados.
 
-O principal gargalo esperado em crescimento acelerado é a atualização concorrente de `daily_balances` para o mesmo `merchant_id` e a mesma `balance_date`. Por isso, a primeira evolução técnica recomendada é trocar a atualização em memória do consolidado por upsert atômico no PostgreSQL e implementar Outbox Pattern para publicação confiável de eventos. Depois disso, o plano é escalar componentes, adicionar DLQ, retry, métricas e alertas, e só então avaliar batch, particionamento, cache, read replicas ou extração para serviços independentes.
+O principal gargalo esperado em crescimento acelerado é a atualização concorrente de `daily_balances` para o mesmo `merchant_id` e a mesma `balance_date`. Por isso, a consolidação usa upsert atômico no PostgreSQL, e a publicação de eventos usa Outbox Pattern. A partir daí, o plano é escalar componentes, adicionar DLQ, retry, métricas e alertas, e só então avaliar batch, particionamento, cache, read replicas ou extração para serviços independentes.
 
 O plano completo está em `docs/scalability.md`.
 
@@ -254,4 +282,4 @@ A arquitetura modular evita a complexidade operacional de microsserviços para u
 
 RabbitMQ adiciona um componente operacional, mas resolve o ponto mais importante do desafio: desacoplar lançamento e consolidação.
 
-O projeto não implementa Outbox Pattern completo. Em produção, ele seria a evolução recomendada para garantir publicação de eventos mesmo em falhas entre commit no banco e envio à fila.
+O Outbox Pattern adiciona uma tabela e um dispatcher operacional, mas reduz o risco de inconsistência entre transação salva e evento não publicado.

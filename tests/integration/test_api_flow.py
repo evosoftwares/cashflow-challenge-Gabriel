@@ -12,14 +12,7 @@ from src.app.config import Settings
 from src.app.main import create_app
 from src.consolidation.service import apply_transaction_created_event
 from src.database.connection import Base
-
-
-class FakePublisher:
-    def __init__(self):
-        self.events = []
-
-    def publish_transaction_created(self, event):
-        self.events.append(event)
+from src.messaging.models import OutboxEvent
 
 
 @pytest.fixture()
@@ -32,7 +25,6 @@ def app_context():
     )
     Base.metadata.create_all(engine)
     SessionLocal = sessionmaker(bind=engine, expire_on_commit=False, future=True)
-    publisher = FakePublisher()
     settings = Settings(
         database_url="sqlite+pysqlite:///:memory:",
         rabbitmq_url="amqp://guest:guest@localhost:5672/",
@@ -42,13 +34,12 @@ def app_context():
     app = create_app(
         settings=settings,
         session_factory=SessionLocal,
-        publisher=publisher,
     )
-    yield TestClient(app), SessionLocal, publisher
+    yield TestClient(app), SessionLocal
 
 
-def test_post_transactions_creates_record_and_publishes_event(app_context):
-    client, SessionLocal, publisher = app_context
+def test_post_transactions_creates_record_and_outbox_event(app_context):
+    client, SessionLocal = app_context
     merchant_id = uuid4()
 
     response = client.post(
@@ -69,9 +60,13 @@ def test_post_transactions_creates_record_and_publishes_event(app_context):
     assert body["type"] == "CREDIT"
     assert body["amount"] == "100.00"
     assert body["status"] == "CREATED"
-    assert len(publisher.events) == 1
 
     with SessionLocal() as session:
+        outbox_event = session.query(OutboxEvent).one()
+        assert outbox_event.event_type == "TRANSACTION_CREATED"
+        assert outbox_event.status == "PENDING"
+        assert outbox_event.payload["merchant_id"] == str(merchant_id)
+
         rows = client.get(
             f"/transactions?merchant_id={merchant_id}&date=2026-05-20",
             headers={"X-API-Key": "test-key"},
@@ -81,8 +76,8 @@ def test_post_transactions_creates_record_and_publishes_event(app_context):
         assert session is not None
 
 
-def test_daily_balance_is_updated_after_worker_applies_published_event(app_context):
-    client, SessionLocal, publisher = app_context
+def test_daily_balance_is_updated_after_worker_applies_outbox_events(app_context):
+    client, SessionLocal = app_context
     merchant_id = uuid4()
     client.post(
         "/transactions",
@@ -108,8 +103,8 @@ def test_daily_balance_is_updated_after_worker_applies_published_event(app_conte
     )
 
     with SessionLocal() as session:
-        for event in publisher.events:
-            apply_transaction_created_event(session, event)
+        for outbox_event in session.query(OutboxEvent).order_by(OutboxEvent.created_at).all():
+            apply_transaction_created_event(session, outbox_event.payload)
 
     response = client.get(
         f"/daily-balances/{date(2026, 5, 20).isoformat()}?merchant_id={merchant_id}",
@@ -127,7 +122,7 @@ def test_daily_balance_is_updated_after_worker_applies_published_event(app_conte
 
 
 def test_post_transactions_keeps_working_when_worker_is_stopped(app_context):
-    client, _, publisher = app_context
+    client, SessionLocal = app_context
     merchant_id = uuid4()
 
     response = client.post(
@@ -147,12 +142,13 @@ def test_post_transactions_keeps_working_when_worker_is_stopped(app_context):
     )
 
     assert response.status_code == 201
-    assert len(publisher.events) == 1
+    with SessionLocal() as session:
+        assert session.query(OutboxEvent).count() == 1
     assert balance_response.status_code == 404
 
 
 def test_protected_endpoints_require_api_key(app_context):
-    client, _, _ = app_context
+    client, _ = app_context
 
     response = client.get(
         f"/daily-balances/2026-05-20?merchant_id={uuid4()}",

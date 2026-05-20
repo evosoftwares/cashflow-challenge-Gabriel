@@ -11,6 +11,10 @@ class TransactionRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    def add(self, transaction: Transaction) -> Transaction:
+        self.db.add(transaction)
+        return transaction
+
     def save(self, transaction: Transaction) -> Transaction:
         self.db.add(transaction)
         self.db.commit()

@@ -17,6 +17,7 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False, future=True)
 
 def import_models() -> None:
     from src.consolidation import models as consolidation_models  # noqa: F401
+    from src.messaging import models as messaging_models  # noqa: F401
     from src.transactions import models as transaction_models  # noqa: F401
 
 

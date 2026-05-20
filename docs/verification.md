@@ -19,7 +19,7 @@ PATH=.venv/bin:$PATH pytest -q
 Resultado:
 
 ```text
-14 passed
+16 passed
 ```
 
 ## Migrations
@@ -51,7 +51,7 @@ Comando:
 make docker-e2e
 ```
 
-O script reseta o ambiente local do Docker Compose, executa migrations, valida API, PostgreSQL, RabbitMQ, worker e resiliencia com worker parado.
+O script reseta o ambiente local do Docker Compose, executa migrations, valida API, PostgreSQL, Outbox Dispatcher, RabbitMQ, worker e resiliencia com worker parado.
 
 Resultado:
 
@@ -75,12 +75,14 @@ Fluxo validado pelo script:
 
 1. `POST /transactions` com `CREDIT 120.00`.
 2. `POST /transactions` com `DEBIT 40.00`.
-3. `GET /daily-balances/2026-05-20`.
-4. `docker compose stop worker`.
-5. `POST /transactions` com worker parado retorna `201 Created`.
-6. RabbitMQ mantem uma mensagem pendente.
-7. `docker compose start worker`.
-8. Worker consome a mensagem pendente e atualiza o saldo.
+3. Outbox Dispatcher publica os eventos pendentes no RabbitMQ.
+4. Worker consome os eventos e consolida com upsert atomico.
+5. `GET /daily-balances/2026-05-20`.
+6. `docker compose stop worker`.
+7. `POST /transactions` com worker parado retorna `201 Created`.
+8. RabbitMQ mantem uma mensagem pendente publicada pelo Outbox Dispatcher.
+9. `docker compose start worker`.
+10. Worker consome a mensagem pendente e atualiza o saldo.
 
 Resultado do consolidado:
 
@@ -140,7 +142,7 @@ k6 run tests/load/daily_balance_50rps.js
 Resultado:
 
 ```text
-http_reqs......................: 3001   50.008731/s
+http_reqs......................: 3001   50.01052/s
 http_req_failed................: 0.00%
 checks_succeeded...............: 100.00% 3001 out of 3001
 ```

@@ -21,6 +21,8 @@ flowchart TD
     CLIENT[Cliente]
     API[FastAPI<br/>Arquitetura Modular]
     TX[Módulo de Lançamentos]
+    OUTBOX[(Outbox Events)]
+    DISPATCHER[Outbox Dispatcher]
     DB[(PostgreSQL)]
     MQ[RabbitMQ<br/>transaction.created]
     WORKER[Worker de Consolidação]
@@ -28,10 +30,12 @@ flowchart TD
     CLIENT -->|POST /transactions| API
     API --> TX
     TX -->|Salva lançamento| DB
-    TX -->|Publica evento| MQ
+    TX -->|Registra evento| OUTBOX
+    OUTBOX --> DISPATCHER
+    DISPATCHER -->|Publica evento| MQ
     MQ --> WORKER
     WORKER --> BAL
-    BAL -->|Atualiza saldo diário| DB
+    BAL -->|Upsert atômico no saldo diário| DB
     CLIENT -->|GET /daily-balances/date| API
     API --> BAL
     BAL -->|Consulta saldo| DB
@@ -42,10 +46,11 @@ Fluxo principal:
 1. Cliente chama `POST /transactions`.
 2. API valida os dados.
 3. Lançamento é salvo em `transactions`.
-4. Evento `TRANSACTION_CREATED` é publicado na fila `transaction.created`.
-5. Worker consome a mensagem.
-6. Worker atualiza `daily_balances`.
-7. Worker grava `processed_events` para evitar duplicidade.
+4. Evento `TRANSACTION_CREATED` é salvo em `outbox_events` na mesma transação.
+5. Outbox Dispatcher publica o evento na fila `transaction.created`.
+6. Worker consome a mensagem.
+7. Worker atualiza `daily_balances` com upsert atômico.
+8. Worker grava `processed_events` para evitar duplicidade.
 
 ## Decisões arquiteturais
 
@@ -53,6 +58,8 @@ Fluxo principal:
 - PostgreSQL para consistência e integridade transacional.
 - RabbitMQ para desacoplar lançamento e consolidação.
 - Worker assíncrono para processar o saldo diário.
+- Outbox Pattern para evitar perda de evento entre banco e RabbitMQ.
+- Upsert atômico no consolidado diário para reduzir risco de concorrência.
 - Alembic para versionar o schema do banco.
 - API Key simples para proteger endpoints no escopo do desafio.
 - Logs estruturados básicos e healthcheck.
@@ -86,7 +93,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-O serviço `migrate` executa `alembic upgrade head` automaticamente antes da API e do worker.
+O serviço `migrate` executa `alembic upgrade head` automaticamente antes da API, do worker e do dispatcher de Outbox.
 
 Para executar a migration manualmente:
 
@@ -125,13 +132,13 @@ Também é possível rodar diretamente:
 pytest
 ```
 
-Para validar o fluxo real com Docker Compose, PostgreSQL, RabbitMQ e worker:
+Para validar o fluxo real com Docker Compose, PostgreSQL, RabbitMQ, Outbox Dispatcher e worker:
 
 ```bash
 make docker-e2e
 ```
 
-Esse teste reseta o ambiente local do Compose, cria lançamentos, valida consolidação, para o worker, confirma que `POST /transactions` continua retornando `201 Created`, verifica mensagem pendente na fila e religa o worker para processar o saldo.
+Esse teste reseta o ambiente local do Compose, cria lançamentos, valida consolidação, para o worker, confirma que `POST /transactions` continua retornando `201 Created`, verifica mensagem pendente na fila RabbitMQ publicada pelo Outbox Dispatcher e religa o worker para processar o saldo.
 
 ## Como executar teste de resiliência
 
@@ -185,15 +192,14 @@ O script `tests/load/daily_balance_50rps.js` executa 50 requisições por segund
 
 ## Escalabilidade e crescimento rápido
 
-A arquitetura atual é escalável de forma proporcional ao desafio. A API pode ser replicada horizontalmente, o worker pode ganhar mais instâncias e o RabbitMQ absorve picos temporários mantendo o registro de lançamentos desacoplado da consolidação.
+A arquitetura atual é escalável de forma proporcional ao desafio. A API pode ser replicada horizontalmente, o worker pode ganhar mais instâncias e o RabbitMQ absorve picos temporários mantendo o registro de lançamentos desacoplado da consolidação. O consolidado usa upsert atômico e a publicação de eventos passa por Outbox para reduzir risco de inconsistência.
 
 Se o sistema crescer rápido demais, o plano é evoluir em camadas:
 
-1. Implementar upsert atômico em `daily_balances` e Outbox Pattern para publicação confiável de eventos.
-2. Escalar API, workers e recursos de PostgreSQL/RabbitMQ.
-3. Adicionar Dead Letter Queue, retry exponencial, métricas e alertas.
-4. Otimizar consolidação com batch, particionamento por data ou `merchant_id`, cache e read replicas.
-5. Separar módulos em serviços independentes e avaliar broker de maior escala apenas se houver evidência de necessidade.
+1. Escalar API, workers, Outbox Dispatcher e recursos de PostgreSQL/RabbitMQ.
+2. Adicionar Dead Letter Queue, retry exponencial, métricas e alertas.
+3. Otimizar consolidação com batch, particionamento por data ou `merchant_id`, cache e read replicas.
+4. Separar módulos em serviços independentes e avaliar broker de maior escala apenas se houver evidência de necessidade.
 
 O plano completo está documentado em `docs/scalability.md`.
 
@@ -288,6 +294,7 @@ Implementado:
 
 - `/health`.
 - Logs básicos de criação de lançamento.
+- Logs básicos de publicação via Outbox.
 - Logs básicos de consolidação.
 - Logs de erro no worker.
 
@@ -301,7 +308,6 @@ Evoluções recomendadas:
 
 ## Evoluções futuras
 
-- Outbox Pattern para garantir publicação de eventos após commit no banco.
 - Dead Letter Queue para mensagens inválidas ou com erro recorrente.
 - Retry exponencial.
 - Rate limiting.

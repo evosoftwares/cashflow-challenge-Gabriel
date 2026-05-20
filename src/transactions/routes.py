@@ -2,7 +2,7 @@ from collections.abc import Callable
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from src.app.config import Settings, require_api_key
@@ -12,10 +12,10 @@ from src.transactions.schemas import (
     TransactionListItem,
     TransactionResponse,
 )
-from src.transactions.service import MessagePublishError, create_transaction
+from src.transactions.service import create_transaction
 
 
-def create_router(settings: Settings, session_factory: Callable[[], Session], publisher) -> APIRouter:
+def create_router(settings: Settings, session_factory: Callable[[], Session]) -> APIRouter:
     router = APIRouter(tags=["transactions"])
 
     def get_db():
@@ -34,13 +34,7 @@ def create_router(settings: Settings, session_factory: Callable[[], Session], pu
         dependencies=[Depends(api_key_dependency)],
     )
     def post_transaction(payload: TransactionCreate, db: Session = Depends(get_db)):
-        try:
-            transaction = create_transaction(db, payload, publisher)
-        except MessagePublishError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Transaction saved but event publication failed",
-            ) from exc
+        transaction = create_transaction(db, payload)
 
         return TransactionResponse(
             id=transaction.id,

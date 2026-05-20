@@ -8,6 +8,23 @@ CREATE TABLE transactions (
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE INDEX ix_transactions_merchant_occurred_at
+    ON transactions (merchant_id, occurred_at);
+
+CREATE TABLE outbox_events (
+    id UUID PRIMARY KEY,
+    event_type VARCHAR(100) NOT NULL,
+    payload JSON NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'PUBLISHED', 'FAILED')),
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_error VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    published_at TIMESTAMP
+);
+
+CREATE INDEX ix_outbox_events_status_created_at
+    ON outbox_events (status, created_at);
+
 CREATE TABLE daily_balances (
     id UUID PRIMARY KEY,
     merchant_id UUID NOT NULL,
@@ -22,5 +39,6 @@ CREATE TABLE daily_balances (
 CREATE TABLE processed_events (
     event_id UUID PRIMARY KEY,
     transaction_id UUID NOT NULL,
-    processed_at TIMESTAMP NOT NULL DEFAULT NOW()
+    processed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id)
 );

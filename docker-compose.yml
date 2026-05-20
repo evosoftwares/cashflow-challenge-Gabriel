@@ -29,6 +29,20 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  outbox-dispatcher:
+    build: .
+    command: python -m src.messaging.outbox_dispatcher
+    environment:
+      DATABASE_URL: postgresql+psycopg://cashflow:cashflow@postgres:5432/cashflow
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      API_KEY: local-dev-key
+      QUEUE_NAME: transaction.created
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
   migrate:
     build: .
     command: alembic upgrade head

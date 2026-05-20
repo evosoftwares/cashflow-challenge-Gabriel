@@ -12,6 +12,7 @@ Custos esperados em produção:
 
 - Compute para aplicação.
 - Compute para worker.
+- Compute para Outbox Dispatcher.
 - Banco PostgreSQL.
 - RabbitMQ gerenciado ou self-hosted.
 - Armazenamento.

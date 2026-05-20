@@ -5,6 +5,7 @@
 - Endpoint `/health`.
 - Logs estruturados básicos.
 - Logs de criação de lançamento.
+- Logs de publicação do Outbox.
 - Logs de processamento do consolidado.
 - Logs de erro no worker.
 
@@ -33,6 +34,8 @@
 - Quantidade de lançamentos criados.
 - Quantidade de eventos processados.
 - Quantidade de eventos duplicados.
+- Quantidade de eventos pendentes em `outbox_events`.
+- Falhas de publicação no Outbox Dispatcher.
 - Falhas de processamento.
 - Tempo médio de consolidação.
 - Tamanho da fila RabbitMQ.
