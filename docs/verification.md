@@ -37,7 +37,7 @@ npm --prefix frontend run build
 Resultado:
 
 ```text
-7 passed
+8 passed
 vite build completed successfully
 ```
 

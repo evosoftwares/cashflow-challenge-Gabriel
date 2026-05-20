@@ -106,6 +106,7 @@ export default function App() {
           balance: streamMessage.balance,
         });
         setBalanceState("available");
+        void refreshTransactions({ clearMessage: false });
       },
       onError: (error) => {
         setBalanceState("error");
@@ -114,10 +115,21 @@ export default function App() {
     });
   }, [hasProtectedContext, merchantId, operationDate]);
 
-  async function refreshTransactions() {
+  useEffect(() => {
+    if (!hasProtectedContext) {
+      setTransactions([]);
+      return;
+    }
+
+    void refreshTransactions({ clearMessage: false });
+  }, [hasProtectedContext, merchantId, operationDate]);
+
+  async function refreshTransactions(options: { clearMessage?: boolean } = {}) {
     if (!hasProtectedContext) return;
     setTransactionsLoading(true);
-    setMessage(null);
+    if (options.clearMessage ?? true) {
+      setMessage(null);
+    }
     try {
       const rows = await listTransactions(defaultApiKey, merchantId.trim(), operationDate);
       setTransactions(rows);

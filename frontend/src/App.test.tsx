@@ -192,6 +192,48 @@ describe("Cash Flow operational portal", () => {
     expect(screen.getAllByText("R$ 100,00").length).toBeGreaterThanOrEqual(1);
   });
 
+  test("loads day transactions automatically after realtime balance updates", async () => {
+    let transactionListCalls = 0;
+    mockFetch((input) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return healthResponse();
+      if (url.includes("/daily-balances/2026-05-20/stream")) {
+        return streamResponse([
+          'event: daily_balance\ndata: {"status":"available","merchant_id":"8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11","date":"2026-05-20","total_credit":"88.00","total_debit":"0.00","balance":"88.00"}\n\n',
+        ]);
+      }
+      if (url.includes("/transactions?")) {
+        transactionListCalls += 1;
+        return jsonResponse(
+          200,
+          transactionListCalls === 1
+            ? []
+            : [
+                {
+                  id: "cef38293-8439-4417-8b65-22dd782b2daf",
+                  merchant_id: "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11",
+                  type: "CREDIT",
+                  amount: "88.00",
+                  description: "Validacao realtime",
+                  occurred_at: "2026-05-20T10:00:00",
+                  created_at: "2026-05-20T10:01:00",
+                },
+              ],
+        );
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+    await fillOperationContext(user);
+
+    const table = await screen.findByRole("table", { name: "Movimentações financeiras" });
+    expect(await within(table).findByText("Validacao realtime")).toBeInTheDocument();
+    expect(within(table).getByText("R$ 88,00")).toBeInTheDocument();
+    expect(transactionListCalls).toBeGreaterThanOrEqual(2);
+  });
+
   test("lists transactions returned by the API", async () => {
     mockFetch((input) => {
       const url = String(input);
