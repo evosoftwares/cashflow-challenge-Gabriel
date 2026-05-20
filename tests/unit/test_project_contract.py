@@ -43,6 +43,7 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     assert "Escalabilidade" in compliance_text
 
     scalability_text = scalability.read_text()
+    assert "upsert atômico" in scalability_text
     assert "Outbox Pattern" in scalability_text
     assert "Dead Letter Queue" in scalability_text
     assert "daily_balances" in scalability_text

@@ -189,10 +189,11 @@ A arquitetura atual é escalável de forma proporcional ao desafio. A API pode s
 
 Se o sistema crescer rápido demais, o plano é evoluir em camadas:
 
-1. Escalar API, workers e recursos de PostgreSQL/RabbitMQ.
-2. Adicionar Dead Letter Queue, retry exponencial, Outbox Pattern, métricas e alertas.
-3. Otimizar consolidação com batch, particionamento por data ou `merchant_id`, cache e read replicas.
-4. Separar módulos em serviços independentes e avaliar broker de maior escala apenas se houver evidência de necessidade.
+1. Implementar upsert atômico em `daily_balances` e Outbox Pattern para publicação confiável de eventos.
+2. Escalar API, workers e recursos de PostgreSQL/RabbitMQ.
+3. Adicionar Dead Letter Queue, retry exponencial, métricas e alertas.
+4. Otimizar consolidação com batch, particionamento por data ou `merchant_id`, cache e read replicas.
+5. Separar módulos em serviços independentes e avaliar broker de maior escala apenas se houver evidência de necessidade.
 
 O plano completo está documentado em `docs/scalability.md`.
 

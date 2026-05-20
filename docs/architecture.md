@@ -244,7 +244,7 @@ Supabase não foi usado nesta entrega. A arquitetura alvo usa PostgreSQL e a exe
 
 A arquitetura escala de forma proporcional ao escopo do desafio. A API pode ser replicada horizontalmente, o worker pode ganhar mais instâncias e o RabbitMQ absorve picos temporários mantendo lançamento e consolidação desacoplados.
 
-O principal gargalo esperado em crescimento acelerado é a atualização concorrente de `daily_balances` para o mesmo `merchant_id` e a mesma `balance_date`. O plano de evolução é primeiro escalar componentes e observar métricas, depois adicionar DLQ, retry, Outbox Pattern e alertas, e só então avaliar batch, particionamento, cache, read replicas ou extração para serviços independentes.
+O principal gargalo esperado em crescimento acelerado é a atualização concorrente de `daily_balances` para o mesmo `merchant_id` e a mesma `balance_date`. Por isso, a primeira evolução técnica recomendada é trocar a atualização em memória do consolidado por upsert atômico no PostgreSQL e implementar Outbox Pattern para publicação confiável de eventos. Depois disso, o plano é escalar componentes, adicionar DLQ, retry, métricas e alertas, e só então avaliar batch, particionamento, cache, read replicas ou extração para serviços independentes.
 
 O plano completo está em `docs/scalability.md`.
 
