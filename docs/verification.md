@@ -149,6 +149,23 @@ checks_succeeded...............: 100.00% 3001 out of 3001
 
 O resultado atende ao requisito de 50 requisicoes por segundo com falha inferior a 5%.
 
+## Testes de overload
+
+Os testes de overload estão documentados em `docs/overload-tests.md`.
+
+Comandos:
+
+```bash
+make overload-read
+make overload-worker
+```
+
+Resultados observados:
+
+- Overload de leitura: 8974 requisições em 30 segundos, 299.091052 rps, 0.00% de falha.
+- Overload com worker parado: 500 lançamentos enviados, 500 respostas `201`, fila `transaction.created` acumulou 500 mensagens e drenou após religar o worker.
+- Saldo final do cenário de backlog: `500.00`.
+
 ## Checklist de aderencia
 
 O arquivo `docs/compliance-checklist.md` mapeia cada requisito do avaliador para a evidencia correspondente no repositorio.

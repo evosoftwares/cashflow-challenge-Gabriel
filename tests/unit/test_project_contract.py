@@ -45,10 +45,12 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     compliance = Path("docs/compliance-checklist.md")
     scalability = Path("docs/scalability.md")
     docker_e2e = Path("tests/integration/docker_e2e.sh")
+    overload_docs = Path("docs/overload-tests.md")
 
     assert compliance.is_file()
     assert scalability.is_file()
     assert docker_e2e.is_file()
+    assert overload_docs.is_file()
 
     compliance_text = compliance.read_text()
     assert "Requisito do avaliador" in compliance_text
@@ -72,3 +74,8 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     compose_text = Path("docker-compose.yml").read_text()
     assert "outbox-dispatcher" in compose_text
     assert "python -m src.messaging.outbox_dispatcher" in compose_text
+
+    overload_text = overload_docs.read_text()
+    assert "Overload de leitura" in overload_text
+    assert "worker parado" in overload_text
+    assert "transaction.created 500 0" in overload_text

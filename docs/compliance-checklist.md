@@ -21,6 +21,7 @@ Este checklist mapeia cada requisito do avaliador para evidencia objetiva no rep
 | Consolidacao segura sob concorrencia | Atendido | Upsert atomico em `src/consolidation/repository.py` |
 | Consolidado com 50 requisicoes por segundo | Atendido | `tests/load/daily_balance_50rps.js`, `docs/verification.md` |
 | Perda maxima de 5% em pico | Atendido | Threshold k6 `http_req_failed < 5%` |
+| Simulacao de overload | Atendido | `docs/overload-tests.md`, `tests/load/overload_read_300rps.js`, `tests/load/overload_worker_backlog.sh` |
 | Arquitetura de transicao, se necessaria | Atendido | `docs/transition-architecture.md` |
 | Estimativa de custos | Atendido | `docs/costs.md` |
 | Escalabilidade e plano de crescimento | Atendido | `docs/scalability.md`, `README.md` |

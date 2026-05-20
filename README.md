@@ -190,6 +190,22 @@ make load-test
 
 O script `tests/load/daily_balance_50rps.js` executa 50 requisições por segundo por 1 minuto no endpoint de consolidado diário e aceita no máximo 5% de falha.
 
+## Como executar testes de overload
+
+Leitura acima do requisito mínimo:
+
+```bash
+make overload-read
+```
+
+Backlog de consolidação com worker parado:
+
+```bash
+make overload-worker
+```
+
+Os cenários, resultados observados e interpretação estão documentados em `docs/overload-tests.md`.
+
 ## Escalabilidade e crescimento rápido
 
 A arquitetura atual é escalável de forma proporcional ao desafio. A API pode ser replicada horizontalmente, o worker pode ganhar mais instâncias e o RabbitMQ absorve picos temporários mantendo o registro de lançamentos desacoplado da consolidação. O consolidado usa upsert atômico e a publicação de eventos passa por Outbox para reduzir risco de inconsistência.

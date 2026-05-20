@@ -1,4 +1,4 @@
-.PHONY: up down migrate test docker-e2e load-test logs stop-worker start-worker
+.PHONY: up down migrate test docker-e2e load-test overload-read overload-worker logs stop-worker start-worker
 
 up:
 	docker compose up --build
@@ -17,6 +17,12 @@ docker-e2e:
 
 load-test:
 	k6 run tests/load/daily_balance_50rps.js
+
+overload-read:
+	k6 run tests/load/overload_read_300rps.js
+
+overload-worker:
+	bash tests/load/overload_worker_backlog.sh
 
 logs:
 	docker compose logs -f
