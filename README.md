@@ -1,2 +1,273 @@
-# cashflow-challenge-Gabriel
-Desafio de arquitetura de soluções para fluxo de caixa diário, com arquitetura modular, registro de débitos e créditos, consolidação assíncrona via RabbitMQ, PostgreSQL, testes, documentação técnica e ADRs.
+# Cash Flow Architecture Challenge
+
+## Objetivo
+
+Implementar uma solução simples e proporcional para controle de fluxo de caixa diário, com registro de lançamentos de crédito e débito e consulta de saldo consolidado por dia.
+
+A solução foi desenhada para atender ao fluxo de caixa diário com separação clara entre lançamento e consolidação. A escolha por uma arquitetura modular com comunicação assíncrona via RabbitMQ garante resiliência no ponto mais crítico do desafio, mantendo simplicidade operacional e evitando complexidade desnecessária.
+
+## Solução proposta
+
+A arquitetura foi desenhada como um monólito modular, separando os domínios de Lançamentos e Consolidação.
+
+A comunicação entre os domínios ocorre de forma assíncrona via RabbitMQ. Essa decisão atende ao requisito de que o controle de lançamentos continue funcionando mesmo quando a consolidação estiver indisponível.
+
+A escolha por monólito modular evita complexidade operacional desnecessária, mantendo a possibilidade de evolução futura para microsserviços caso os domínios cresçam de forma independente.
+
+## Arquitetura
+
+```text
+                 Cliente
+                    |
+                 FastAPI
+                    |
+        -------------------------
+        |                       |
+ Transactions Module    Consolidation Query
+        |
+        v
+   PostgreSQL
+        |
+        v
+    RabbitMQ
+        |
+        v
+ Consolidation Worker
+        |
+        v
+   PostgreSQL
+```
+
+Fluxo principal:
+
+1. Cliente chama `POST /transactions`.
+2. API valida os dados.
+3. Lançamento é salvo em `transactions`.
+4. Evento `TRANSACTION_CREATED` é publicado na fila `transaction.created`.
+5. Worker consome a mensagem.
+6. Worker atualiza `daily_balances`.
+7. Worker grava `processed_events` para evitar duplicidade.
+
+## Decisões arquiteturais
+
+- Monólito modular em vez de múltiplos microsserviços.
+- PostgreSQL para consistência e integridade transacional.
+- RabbitMQ para desacoplar lançamento e consolidação.
+- Worker assíncrono para processar o saldo diário.
+- API Key simples para proteger endpoints no escopo do desafio.
+- Logs estruturados básicos e healthcheck.
+
+Os ADRs estão em `docs/adr/`.
+
+## Requisitos atendidos
+
+- Controle de lançamentos: `POST /transactions` e `GET /transactions`.
+- Consolidado diário: `GET /daily-balances/{date}`.
+- Domínios e capacidades: `docs/domains.md`.
+- Requisitos funcionais e não funcionais: `docs/requirements.md`.
+- Arquitetura alvo: `docs/architecture.md`.
+- Justificativa tecnológica: `docs/adr/`.
+- Segurança: `docs/security.md`.
+- Observabilidade: `docs/observability.md`.
+- Custos: `docs/costs.md`.
+- Arquitetura de transição: `docs/transition-architecture.md`.
+- Testes unitários, integração leve e carga.
+
+## Como rodar localmente
+
+```bash
+git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
+cd cashflow-challenge-Gabriel
+cp .env.example .env
+docker compose up --build
+```
+
+Healthcheck:
+
+```bash
+curl http://localhost:8000/health
+```
+
+RabbitMQ Management:
+
+```text
+http://localhost:15672
+usuario: guest
+senha: guest
+```
+
+## Como executar os testes
+
+Instale as dependências de desenvolvimento:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+make test
+```
+
+Também é possível rodar diretamente:
+
+```bash
+pytest
+```
+
+## Como executar teste de resiliência
+
+Pare apenas o worker:
+
+```bash
+make stop-worker
+```
+
+Crie um lançamento:
+
+```bash
+curl -X POST http://localhost:8000/transactions \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: local-dev-key" \
+  -d '{
+    "merchant_id": "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11",
+    "type": "CREDIT",
+    "amount": 100.00,
+    "description": "Teste com worker parado",
+    "occurred_at": "2026-05-20T10:00:00"
+  }'
+```
+
+Resultado esperado: `201 Created`.
+
+Isso demonstra que o controle de lançamentos continua funcionando mesmo com a consolidação parada. A mensagem permanece na fila RabbitMQ.
+
+Reinicie o worker:
+
+```bash
+make start-worker
+```
+
+Depois consulte o saldo:
+
+```bash
+curl -H "X-API-Key: local-dev-key" \
+  "http://localhost:8000/daily-balances/2026-05-20?merchant_id=8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11"
+```
+
+## Como executar teste de carga
+
+Instale o k6 e rode:
+
+```bash
+make load-test
+```
+
+O script `tests/load/daily_balance_50rps.js` executa 50 requisições por segundo por 1 minuto no endpoint de consolidado diário e aceita no máximo 5% de falha.
+
+## Endpoints
+
+### GET /health
+
+```bash
+curl http://localhost:8000/health
+```
+
+Resposta:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+### POST /transactions
+
+```bash
+curl -X POST http://localhost:8000/transactions \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: local-dev-key" \
+  -d '{
+    "merchant_id": "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11",
+    "type": "CREDIT",
+    "amount": 100.00,
+    "description": "Venda no cartão",
+    "occurred_at": "2026-05-20T10:00:00"
+  }'
+```
+
+Resposta:
+
+```json
+{
+  "id": "4dc7300e-8df7-4634-b6a0-8bda7afc4218",
+  "merchant_id": "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11",
+  "type": "CREDIT",
+  "amount": "100.00",
+  "status": "CREATED"
+}
+```
+
+### GET /transactions
+
+```bash
+curl -H "X-API-Key: local-dev-key" \
+  "http://localhost:8000/transactions?merchant_id=8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11&date=2026-05-20"
+```
+
+### GET /daily-balances/{date}
+
+```bash
+curl -H "X-API-Key: local-dev-key" \
+  "http://localhost:8000/daily-balances/2026-05-20?merchant_id=8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11"
+```
+
+Resposta esperada após consolidação:
+
+```json
+{
+  "merchant_id": "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11",
+  "date": "2026-05-20",
+  "total_credit": "300.00",
+  "total_debit": "80.00",
+  "balance": "220.00"
+}
+```
+
+Os valores monetários são serializados como strings decimais para preservar precisão ponta a ponta. No banco e nos cálculos, a solução usa `NUMERIC(14, 2)`/`Decimal`, não ponto flutuante.
+
+## Segurança
+
+Os endpoints principais exigem:
+
+```text
+X-API-Key: local-dev-key
+```
+
+Para produção, a recomendação é evoluir para JWT/OAuth2, HTTPS obrigatório, rate limiting, rotação de credenciais e segregação por merchant.
+
+## Observabilidade
+
+Implementado:
+
+- `/health`.
+- Logs básicos de criação de lançamento.
+- Logs básicos de consolidação.
+- Logs de erro no worker.
+
+Evoluções recomendadas:
+
+- Prometheus.
+- Grafana.
+- Alertas de fila acumulada.
+- Monitoramento de falhas de processamento.
+- Tracing distribuído.
+
+## Evoluções futuras
+
+- Outbox Pattern para garantir publicação de eventos após commit no banco.
+- Dead Letter Queue para mensagens inválidas ou com erro recorrente.
+- Retry exponencial.
+- Rate limiting.
+- JWT/OAuth2.
+- Métricas Prometheus/Grafana.
+- Cache Redis caso a consulta de consolidado exija baixa latência sob volume maior.
+- Extração futura dos módulos para microsserviços se os domínios crescerem de forma independente.

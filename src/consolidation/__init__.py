@@ -1,0 +1,1 @@
+"""Daily balance consolidation module."""
