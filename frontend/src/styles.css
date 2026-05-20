@@ -371,10 +371,20 @@ p {
   font-weight: 900;
 }
 
+.sync-status__icon {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+
 .sync-status--offline,
 .sync-status--failed {
   border-color: #f7d986;
   background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.sync-status--offline .sync-status__icon,
+.sync-status--failed .sync-status__icon {
   color: var(--warning);
 }
 
@@ -384,10 +394,21 @@ p {
   color: var(--primary-hover);
 }
 
+.sync-status--syncing .sync-status__icon {
+  animation: sync-spin 0.9s linear infinite;
+  color: var(--primary-hover);
+}
+
 .sync-status__action {
   min-height: 32px;
   margin-left: auto;
   padding: 0 10px;
+}
+
+@keyframes sync-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .primary-grid {

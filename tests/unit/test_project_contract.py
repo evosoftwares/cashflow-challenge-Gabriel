@@ -118,7 +118,7 @@ def test_final_delivery_artifacts_are_production_ready():
     assert dockerignore.is_file()
     assert ".venv/" in dockerignore.read_text()
     assert "frontend/node_modules/" in dockerignore.read_text()
-    assert "16 passed" in verification
+    assert "17 passed" in verification
     assert "8 passed" not in verification
     assert "client_request_id" in verification
     assert "foi implementada como uma operação atômica" in scalability

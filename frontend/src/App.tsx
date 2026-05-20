@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LoaderCircle, TriangleAlert, Wifi, WifiOff, type LucideIcon } from "lucide-react";
 
 import {
   ApiError,
@@ -74,6 +75,25 @@ function areQueuedTransactionsEqual(first: QueuedTransaction[], second: QueuedTr
   });
 }
 
+type SyncState = "online" | "offline" | "syncing" | "failed";
+
+function getSyncStatusPresentation(syncState: SyncState, isOnline: boolean): {
+  icon: LucideIcon;
+  iconLabel: string;
+  label: string;
+} {
+  if (syncState === "syncing") {
+    return { icon: LoaderCircle, iconLabel: "Status sincronizando", label: "Sincronizando" };
+  }
+  if (syncState === "failed") {
+    return { icon: TriangleAlert, iconLabel: "Status com falha", label: "Falha ao sincronizar" };
+  }
+  if (syncState === "offline" || !isOnline) {
+    return { icon: WifiOff, iconLabel: "Status offline", label: "Offline" };
+  }
+  return { icon: Wifi, iconLabel: "Status online", label: "Online" };
+}
+
 export default function App() {
   const [merchantId, setMerchantId] = useState(defaultMerchantId);
   const [operationDate, setOperationDate] = useState(todayDate);
@@ -86,7 +106,7 @@ export default function App() {
   const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
   const [queuedTransactions, setQueuedTransactions] = useState<QueuedTransaction[]>([]);
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
-  const [syncState, setSyncState] = useState<"online" | "offline" | "syncing" | "failed">(
+  const [syncState, setSyncState] = useState<SyncState>(
     typeof navigator === "undefined" || navigator.onLine ? "online" : "offline",
   );
   const [submitting, setSubmitting] = useState(false);
@@ -102,6 +122,8 @@ export default function App() {
     merchantId === defaultMerchantId ? "Mercado do Bairro - Demonstração" : "Loja de teste local";
   const pendingCount = queuedTransactions.length;
   const failedCount = queuedTransactions.filter((transaction) => transaction.status === "failed").length;
+  const syncStatusPresentation = getSyncStatusPresentation(syncState, isOnline);
+  const SyncStatusIcon = syncStatusPresentation.icon;
   const displayedTransactions = useMemo<TransactionTableItem[]>(() => {
     const localRows = queuedTransactions
       .filter(
@@ -391,16 +413,14 @@ export default function App() {
       {message ? <StatusMessage tone={message.tone}>{message.text}</StatusMessage> : null}
 
       <section className={`sync-status sync-status--${syncState}`} aria-label="Estado de sincronização">
-        <span className="status-dot" aria-hidden="true" />
-        <strong>
-          {syncState === "syncing"
-            ? "Sincronizando"
-            : syncState === "failed"
-              ? "Falha ao sincronizar"
-              : isOnline
-                ? "Online"
-                : "Offline"}
-        </strong>
+        <SyncStatusIcon
+          aria-label={syncStatusPresentation.iconLabel}
+          className="sync-status__icon"
+          role="img"
+          size={17}
+          strokeWidth={2.4}
+        />
+        <strong>{syncStatusPresentation.label}</strong>
         <span>{pendingCount > 0 ? queueLabel(pendingCount) : "Sem pendências offline"}</span>
         {failedCount > 0 ? (
           <button className="button button--secondary sync-status__action" onClick={syncQueuedTransactions} type="button">

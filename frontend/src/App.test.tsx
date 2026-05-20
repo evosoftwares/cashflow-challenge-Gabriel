@@ -127,6 +127,28 @@ describe("Cash Flow operational portal", () => {
     expect(saveButton).toBeEnabled();
   });
 
+  test("shows an accessible icon that follows online and offline status", async () => {
+    mockFetch((input) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return healthResponse();
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    render(<App />);
+
+    expect(await screen.findByLabelText("Status online")).toBeInTheDocument();
+
+    fireEvent.offline(window);
+
+    expect(screen.getByLabelText("Status offline")).toBeInTheDocument();
+
+    fireEvent.online(window);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Status online")).toBeInTheDocument();
+    });
+  });
+
   test("creates a transaction with the API key header and shows success", async () => {
     const fetchMock = mockFetch((input, init) => {
       const url = String(input);
@@ -431,7 +453,7 @@ describe("Cash Flow operational portal", () => {
     render(<App />);
 
     const table = await screen.findByRole("table", { name: "Movimentações financeiras" });
-    expect(within(table).getByText("Venda no cartao")).toBeInTheDocument();
+    expect(await within(table).findByText("Venda no cartao")).toBeInTheDocument();
     expect(within(table).getByText("Entrada")).toBeInTheDocument();
     expect(within(table).getByText("R$ 100,00")).toBeInTheDocument();
   });

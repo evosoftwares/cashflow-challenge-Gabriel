@@ -41,7 +41,7 @@ npm --prefix frontend run build
 Resultado:
 
 ```text
-16 passed
+17 passed
 vite build completed successfully
 ```
 
@@ -49,7 +49,7 @@ Validação local final também confirmou:
 
 ```text
 23 passed
-16 passed
+17 passed
 vite build completed successfully
 ```
 
