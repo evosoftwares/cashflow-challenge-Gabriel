@@ -10,6 +10,7 @@ TransactionType = Literal["CREDIT", "DEBIT"]
 
 class TransactionCreate(BaseModel):
     merchant_id: UUID
+    client_request_id: UUID | None = None
     type: TransactionType
     amount: Decimal = Field(gt=Decimal("0"))
     description: str | None = Field(default=None, max_length=255)

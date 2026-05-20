@@ -18,6 +18,7 @@ Este checklist mapeia cada requisito do avaliador para evidencia objetiva no rep
 | Repositorio publico GitHub | Atendido | `https://github.com/evosoftwares/cashflow-challenge-Gabriel` |
 | Documentacao versionada no repositorio | Atendido | `docs/` |
 | Interface operacional para demonstracao | Atendido | `frontend/`, `docker-compose.yml`, `README.md` |
+| Registro offline no portal | Atendido | IndexedDB em `frontend/src/offlineQueue.ts`, idempotencia por `client_request_id`, `docs/offline-mode.md` |
 | Controle de lancamento nao indisponivel se consolidado cair | Atendido | RabbitMQ duravel, worker separado, `tests/integration/docker_e2e.sh` |
 | Publicacao confiavel de eventos | Atendido | `outbox_events`, `src/messaging/outbox_dispatcher.py` |
 | Consolidacao segura sob concorrencia | Atendido | Upsert atomico em `src/consolidation/repository.py` |

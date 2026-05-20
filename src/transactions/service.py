@@ -19,8 +19,15 @@ def money(value: Decimal) -> Decimal:
 
 
 def create_transaction(db: Session, payload: TransactionCreate) -> Transaction:
+    repository = TransactionRepository(db)
+    if payload.client_request_id is not None:
+        existing_transaction = repository.get_by_client_request_id(payload.client_request_id)
+        if existing_transaction is not None:
+            return existing_transaction
+
     transaction = Transaction(
         id=uuid4(),
+        client_request_id=payload.client_request_id,
         merchant_id=payload.merchant_id,
         type=payload.type,
         amount=money(payload.amount),
@@ -28,7 +35,6 @@ def create_transaction(db: Session, payload: TransactionCreate) -> Transaction:
         occurred_at=payload.occurred_at,
     )
 
-    repository = TransactionRepository(db)
     saved = repository.add(transaction)
     event = build_transaction_created_event(saved)
     OutboxRepository(db).add_pending(event)

@@ -15,6 +15,10 @@ class TransactionRepository:
         self.db.add(transaction)
         return transaction
 
+    def get_by_client_request_id(self, client_request_id: UUID) -> Transaction | None:
+        statement = select(Transaction).where(Transaction.client_request_id == client_request_id)
+        return self.db.scalars(statement).one_or_none()
+
     def save(self, transaction: Transaction) -> Transaction:
         self.db.add(transaction)
         self.db.commit()

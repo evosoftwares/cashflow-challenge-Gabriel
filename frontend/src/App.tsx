@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ApiError,
@@ -14,7 +14,14 @@ import { ApiSettings } from "./components/ApiSettings";
 import { DailyBalancePanel } from "./components/DailyBalancePanel";
 import { StatusMessage } from "./components/StatusMessage";
 import { TransactionForm } from "./components/TransactionForm";
-import { TransactionsTable } from "./components/TransactionsTable";
+import { TransactionsTable, type TransactionTableItem } from "./components/TransactionsTable";
+import {
+  enqueueTransaction,
+  listQueuedTransactions,
+  removeQueuedTransaction,
+  saveQueuedTransaction,
+  type QueuedTransaction,
+} from "./offlineQueue";
 
 const defaultApiKey = import.meta.env.VITE_DEFAULT_API_KEY ?? "local-dev-key";
 const defaultMerchantId = "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11";
@@ -46,6 +53,27 @@ function errorMessage(error: unknown) {
   return "API indisponível ou erro de rede.";
 }
 
+function shouldQueueForLater(error: unknown) {
+  return !(error instanceof ApiError) || error.status === 0 || error.status >= 500;
+}
+
+function queueLabel(count: number) {
+  return count === 1 ? "1 movimentação pendente" : `${count} movimentações pendentes`;
+}
+
+function areQueuedTransactionsEqual(first: QueuedTransaction[], second: QueuedTransaction[]) {
+  if (first.length !== second.length) return false;
+  return first.every((transaction, index) => {
+    const otherTransaction = second[index];
+    return (
+      transaction.local_id === otherTransaction.local_id &&
+      transaction.status === otherTransaction.status &&
+      transaction.attempts === otherTransaction.attempts &&
+      transaction.last_error === otherTransaction.last_error
+    );
+  });
+}
+
 export default function App() {
   const [merchantId, setMerchantId] = useState(defaultMerchantId);
   const [operationDate, setOperationDate] = useState(todayDate);
@@ -56,8 +84,14 @@ export default function App() {
   const [dailyBalance, setDailyBalance] = useState<DailyBalance | null>(null);
   const [balanceState, setBalanceState] = useState<"idle" | "loading" | "available" | "pending" | "error">("idle");
   const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
+  const [queuedTransactions, setQueuedTransactions] = useState<QueuedTransaction[]>([]);
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  const [syncState, setSyncState] = useState<"online" | "offline" | "syncing" | "failed">(
+    typeof navigator === "undefined" || navigator.onLine ? "online" : "offline",
+  );
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "warning" | "error" | "info"; text: string } | null>(null);
+  const syncInProgressRef = useRef(false);
 
   const hasProtectedContext = useMemo(
     () => isValidUuid(merchantId) && operationDate.trim().length > 0,
@@ -66,6 +100,28 @@ export default function App() {
   const canCreate = hasProtectedContext && amount.trim().length > 0 && occurredAt.trim().length > 0;
   const selectedStoreName =
     merchantId === defaultMerchantId ? "Mercado do Bairro - Demonstração" : "Loja de teste local";
+  const pendingCount = queuedTransactions.length;
+  const failedCount = queuedTransactions.filter((transaction) => transaction.status === "failed").length;
+  const displayedTransactions = useMemo<TransactionTableItem[]>(() => {
+    const localRows = queuedTransactions
+      .filter(
+        (transaction) =>
+          transaction.payload.merchant_id === merchantId.trim() &&
+          transaction.payload.occurred_at.slice(0, 10) === operationDate,
+      )
+      .map<TransactionTableItem>((transaction) => ({
+        id: transaction.local_id,
+        merchant_id: transaction.payload.merchant_id,
+        type: transaction.payload.type,
+        amount: transaction.payload.amount,
+        description: transaction.payload.description ?? null,
+        occurred_at: transaction.payload.occurred_at,
+        created_at: transaction.created_at,
+        sync_status: transaction.status,
+      }));
+
+    return [...localRows, ...transactions];
+  }, [merchantId, operationDate, queuedTransactions, transactions]);
 
   useEffect(() => {
     if (!hasProtectedContext) {
@@ -109,6 +165,46 @@ export default function App() {
     void refreshTransactions({ clearMessage: false });
   }, [hasProtectedContext, merchantId, operationDate]);
 
+  useEffect(() => {
+    let active = true;
+
+    listQueuedTransactions()
+      .then((rows) => {
+        if (!active) return;
+        setQueuedTransactions((currentRows) => (areQueuedTransactionsEqual(currentRows, rows) ? currentRows : rows));
+        if (rows.length > 0 && navigator.onLine) {
+          void syncQueuedTransactions();
+        }
+      })
+      .catch((error) => {
+        if (active) setMessage({ tone: "error", text: errorMessage(error) });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleOnline() {
+      setIsOnline(true);
+      void syncQueuedTransactions();
+    }
+
+    function handleOffline() {
+      setIsOnline(false);
+      setSyncState("offline");
+    }
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  });
+
   async function refreshTransactions(options: { clearMessage?: boolean } = {}) {
     if (!hasProtectedContext) return;
     if (options.clearMessage ?? true) {
@@ -119,6 +215,73 @@ export default function App() {
       setTransactions(rows);
     } catch (error) {
       setMessage({ tone: "error", text: errorMessage(error) });
+    }
+  }
+
+  async function reloadQueuedTransactions() {
+    const rows = await listQueuedTransactions();
+    setQueuedTransactions((currentRows) => (areQueuedTransactionsEqual(currentRows, rows) ? currentRows : rows));
+    return rows;
+  }
+
+  async function queueTransactionForLater(payload: Parameters<typeof enqueueTransaction>[0]) {
+    await enqueueTransaction(payload);
+    await reloadQueuedTransactions();
+    setAmount("");
+    setDescription("");
+    setMessage({
+      tone: "warning",
+      text: "Movimentação salva offline. Ela será enviada quando a conexão voltar.",
+    });
+  }
+
+  async function syncQueuedTransactions() {
+    if (syncInProgressRef.current) return;
+    syncInProgressRef.current = true;
+    setSyncState("syncing");
+
+    try {
+      const rows = await reloadQueuedTransactions();
+      if (rows.length === 0) {
+        setSyncState(navigator.onLine ? "online" : "offline");
+        return;
+      }
+
+      for (const queuedTransaction of rows) {
+        const syncingTransaction = {
+          ...queuedTransaction,
+          status: "syncing" as const,
+          attempts: queuedTransaction.attempts + 1,
+          last_error: null,
+        };
+        await saveQueuedTransaction(syncingTransaction);
+        await reloadQueuedTransactions();
+
+        try {
+          await createTransaction(defaultApiKey, syncingTransaction.payload);
+          await removeQueuedTransaction(syncingTransaction.local_id);
+          await reloadQueuedTransactions();
+        } catch (error) {
+          const failedTransaction = {
+            ...syncingTransaction,
+            status: "failed" as const,
+            last_error: errorMessage(error),
+          };
+          await saveQueuedTransaction(failedTransaction);
+          await reloadQueuedTransactions();
+          setSyncState("failed");
+          setMessage({ tone: "error", text: "Falha ao sincronizar movimentações pendentes." });
+          return;
+        }
+      }
+
+      if (hasProtectedContext) {
+        await Promise.all([refreshTransactions({ clearMessage: false }), refreshDailyBalance()]);
+      }
+      setSyncState(navigator.onLine ? "online" : "offline");
+      setMessage({ tone: "success", text: "Sincronização concluída." });
+    } finally {
+      syncInProgressRef.current = false;
     }
   }
 
@@ -145,19 +308,32 @@ export default function App() {
     if (!canCreate) return;
     setSubmitting(true);
     setMessage(null);
+    const payload = {
+      merchant_id: merchantId.trim(),
+      client_request_id: crypto.randomUUID(),
+      type: transactionType,
+      amount: normalizeAmount(amount),
+      description: description.trim() || undefined,
+      occurred_at: occurredAt,
+    };
+
     try {
-      await createTransaction(defaultApiKey, {
-        merchant_id: merchantId.trim(),
-        type: transactionType,
-        amount: normalizeAmount(amount),
-        description: description.trim() || undefined,
-        occurred_at: occurredAt,
-      });
+      if (!isOnline) {
+        await queueTransactionForLater(payload);
+        setSyncState("offline");
+        return;
+      }
+
+      await createTransaction(defaultApiKey, payload);
       setAmount("");
       setDescription("");
       await Promise.all([refreshTransactions(), refreshDailyBalance()]);
       setMessage({ tone: "success", text: "Movimentação salva com sucesso." });
     } catch (error) {
+      if (shouldQueueForLater(error)) {
+        await queueTransactionForLater(payload);
+        return;
+      }
       setMessage({ tone: "error", text: errorMessage(error) });
     } finally {
       setSubmitting(false);
@@ -214,6 +390,25 @@ export default function App() {
 
       {message ? <StatusMessage tone={message.tone}>{message.text}</StatusMessage> : null}
 
+      <section className={`sync-status sync-status--${syncState}`} aria-label="Estado de sincronização">
+        <span className="status-dot" aria-hidden="true" />
+        <strong>
+          {syncState === "syncing"
+            ? "Sincronizando"
+            : syncState === "failed"
+              ? "Falha ao sincronizar"
+              : isOnline
+                ? "Online"
+                : "Offline"}
+        </strong>
+        <span>{pendingCount > 0 ? queueLabel(pendingCount) : "Sem pendências offline"}</span>
+        {failedCount > 0 ? (
+          <button className="button button--secondary sync-status__action" onClick={syncQueuedTransactions} type="button">
+            Tentar enviar agora
+          </button>
+        ) : null}
+      </section>
+
       <div className="primary-grid">
         <DailyBalancePanel
           balance={dailyBalance}
@@ -239,7 +434,7 @@ export default function App() {
       <TransactionsTable
         disabled={!hasProtectedContext}
         filterDate={operationDate}
-        transactions={transactions}
+        transactions={displayedTransactions}
         onFilterDateChange={setOperationDate}
       />
     </main>

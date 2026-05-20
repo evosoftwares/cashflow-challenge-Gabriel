@@ -19,15 +19,17 @@ PATH=.venv/bin:$PATH pytest -q
 Resultado:
 
 ```text
-22 passed
+23 passed
 ```
 
-Cobertura relevante adicionada para realtime e observabilidade:
+Cobertura relevante adicionada para realtime, observabilidade e offline:
 
 - `GET /daily-balances/{date}/stream` emite evento SSE `daily_balance`.
 - O portal atualiza o `Resumo do dia` a partir do stream sem acionamento manual.
 - O contrato de log JSON metrificado inclui `log_schema_version`, `event`, `component` e `metric`.
 - `GET /metrics` expõe contadores de requisição HTTP e lançamentos criados.
+- `POST /transactions` aceita `client_request_id` opcional.
+- Reenvio com o mesmo `client_request_id` retorna a transação existente sem duplicar `transactions` nem `outbox_events`.
 
 Testes do front-end:
 
@@ -39,15 +41,15 @@ npm --prefix frontend run build
 Resultado:
 
 ```text
-13 passed
+16 passed
 vite build completed successfully
 ```
 
 Validação local final também confirmou:
 
 ```text
-22 passed
-13 passed
+23 passed
+16 passed
 vite build completed successfully
 ```
 
@@ -80,13 +82,32 @@ Resultado:
 
 ```text
 Running upgrade  -> 202605200001, initial schema
+Running upgrade 202605200001 -> 202605200002, add transaction client request id
 ```
 
 No Docker Compose, a tabela `alembic_version` retornou:
 
 ```text
-202605200001
+202605200002
 ```
+
+A versão `202605200002` adiciona `transactions.client_request_id` e o índice único `uq_transactions_client_request_id`.
+
+## Fluxo online/offline do portal
+
+Cobertura automatizada do front-end:
+
+- queda de rede/API no `POST /transactions` salva movimentação em IndexedDB;
+- a tabela mostra contador de pendências e selo `Pendente`;
+- o evento `online` do navegador dispara sincronização automática;
+- fila existente é sincronizada ao carregar o portal;
+- falha `401` não entra na fila offline e mostra erro ao operador.
+
+Cobertura de contrato no backend:
+
+- cliente antigo sem `client_request_id` continua funcionando;
+- cliente com `client_request_id` ganha reenvio idempotente;
+- duplicidade não cria novo evento em `outbox_events`.
 
 ## Validacao end-to-end Docker
 

@@ -76,6 +76,43 @@ def test_post_transactions_creates_record_and_outbox_event(app_context):
         assert session is not None
 
 
+def test_post_transactions_is_idempotent_by_client_request_id(app_context):
+    client, SessionLocal = app_context
+    merchant_id = uuid4()
+    client_request_id = uuid4()
+    payload = {
+        "merchant_id": str(merchant_id),
+        "client_request_id": str(client_request_id),
+        "type": "CREDIT",
+        "amount": "100.00",
+        "description": "Venda offline reenviada",
+        "occurred_at": "2026-05-20T10:00:00",
+    }
+
+    first_response = client.post(
+        "/transactions",
+        headers={"X-API-Key": "test-key"},
+        json=payload,
+    )
+    second_response = client.post(
+        "/transactions",
+        headers={"X-API-Key": "test-key"},
+        json=payload,
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+    assert second_response.json()["id"] == first_response.json()["id"]
+
+    with SessionLocal() as session:
+        rows = client.get(
+            f"/transactions?merchant_id={merchant_id}&date=2026-05-20",
+            headers={"X-API-Key": "test-key"},
+        )
+        assert len(rows.json()) == 1
+        assert session.query(OutboxEvent).count() == 1
+
+
 def test_daily_balance_is_updated_after_worker_applies_outbox_events(app_context):
     client, SessionLocal = app_context
     merchant_id = uuid4()

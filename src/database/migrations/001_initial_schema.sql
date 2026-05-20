@@ -1,5 +1,6 @@
 CREATE TABLE transactions (
     id UUID PRIMARY KEY,
+    client_request_id UUID UNIQUE,
     merchant_id UUID NOT NULL,
     type VARCHAR(10) NOT NULL CHECK (type IN ('CREDIT', 'DEBIT')),
     amount NUMERIC(14, 2) NOT NULL CHECK (amount > 0),

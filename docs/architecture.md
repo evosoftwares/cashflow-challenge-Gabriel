@@ -21,6 +21,8 @@ flowchart TD
     SYSTEM[Cash Flow System<br/>Controle de Fluxo de Caixa Diário]
     USER -->|Registra créditos e débitos| UI
     USER -->|Consulta saldo diário consolidado| UI
+    UI -->|Armazena pendências offline| IDB[(IndexedDB local)]
+    IDB -->|Sincroniza quando online| UI
     UI -->|Consome API HTTP| SYSTEM
     SYSTEM -->|Persiste lançamentos| DB[(PostgreSQL)]
     SYSTEM -->|Registra eventos pendentes| OUTBOX[(Outbox Events)]
@@ -36,6 +38,7 @@ flowchart TD
 flowchart TD
     CLIENT[Cliente / Usuário]
     UI[React Operational Portal]
+    IDB[(IndexedDB<br/>Offline Queue)]
     subgraph APP[FastAPI Application - Monólito Modular]
         API[API Layer]
         subgraph TRANSACTIONS[Módulo de Lançamentos]
@@ -59,6 +62,8 @@ flowchart TD
     MQ[RabbitMQ<br/>Queue: transaction.created]
     WORKER[Consolidation Worker]
     CLIENT -->|Usa portal| UI
+    UI -->|Salva pendências locais| IDB
+    IDB -->|Reenvia com client_request_id| UI
     UI -->|HTTP Request| API
     UI -->|SSE Daily Balance Stream| API
     API --> TRoutes
@@ -179,6 +184,41 @@ sequenceDiagram
     UI-->>User: Resumo do dia atualizado automaticamente
 ```
 
+## Fluxo online/offline do portal
+
+O portal operacional possui uma fila local em IndexedDB para registrar movimentações quando a tela já está aberta e a API ou a rede fica indisponível. O registro pendente é exibido para o operador, mas não altera o saldo consolidado até ser aceito pela API e processado pelo worker.
+
+```mermaid
+sequenceDiagram
+    actor User as Operador
+    participant UI as Portal React
+    participant IDB as IndexedDB local
+    participant API as FastAPI
+    participant DB as PostgreSQL
+    participant Outbox as Outbox Events
+    User->>UI: Salvar movimentação
+    UI->>API: POST /transactions com client_request_id
+    Note over API: API ou rede indisponível
+    UI->>IDB: Gravar lançamento pendente
+    UI-->>User: Exibir selo Pendente
+    Note over UI: Conexão volta
+    UI->>IDB: Ler fila em ordem
+    UI->>API: Reenviar POST /transactions
+    API->>DB: Verificar client_request_id único
+    API->>DB: Salvar ou retornar transação existente
+    API->>Outbox: Registrar evento apenas no primeiro processamento
+    API-->>UI: 201 Created
+    UI->>IDB: Remover item sincronizado
+    UI-->>User: Atualizar tabela e pendências
+```
+
+Limites assumidos:
+
+- a fila offline fica somente no navegador do operador;
+- outro dispositivo não enxerga essas pendências antes da sincronização;
+- abrir ou recarregar o portal totalmente sem rede depende de uma evolução futura com PWA/service worker;
+- o saldo diário continua refletindo apenas dados já persistidos no backend.
+
 ## Observabilidade metrificada
 
 A aplicação registra eventos em JSON com contrato estável e também mantém contadores locais expostos em `GET /metrics`.
@@ -242,6 +282,7 @@ flowchart LR
 erDiagram
     TRANSACTIONS {
         uuid id PK
+        uuid client_request_id UK
         uuid merchant_id
         string type
         decimal amount
@@ -297,7 +338,7 @@ flowchart TD
 
 ### transactions
 
-Armazena cada lançamento financeiro individual, com `type` restrito a `CREDIT` ou `DEBIT` e `amount` em `NUMERIC(14, 2)`.
+Armazena cada lançamento financeiro individual, com `type` restrito a `CREDIT` ou `DEBIT` e `amount` em `NUMERIC(14, 2)`. O campo opcional `client_request_id` possui restrição única para impedir duplicidade quando o portal reenviar uma movimentação offline.
 
 ### daily_balances
 

@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import userEvent from "@testing-library/user-event";
 
 import App from "./App";
+import { enqueueTransaction } from "./offlineQueue";
 
 type MockResponse = {
   ok: boolean;
@@ -81,9 +82,19 @@ function tableBodyRowTexts(table: HTMLElement): string[] {
     .map((row) => (row.textContent ?? "").replace(/\s+/g, " "));
 }
 
+function resetOfflineDatabase() {
+  return new Promise<void>((resolve, reject) => {
+    const request = indexedDB.deleteDatabase("cashflow-offline-queue");
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => resolve();
+  });
+}
+
 describe("Cash Flow operational portal", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear();
+    await resetOfflineDatabase();
   });
 
   afterEach(() => {
@@ -127,6 +138,7 @@ describe("Cash Flow operational portal", () => {
         });
         expect(JSON.parse(String(init.body))).toMatchObject({
           merchant_id: demoMerchantId,
+          client_request_id: expect.any(String),
           type: "CREDIT",
           amount: "100.00",
           description: "Venda no cartao",
@@ -159,6 +171,134 @@ describe("Cash Flow operational portal", () => {
       "http://localhost:8000/transactions",
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  test("stores a transaction locally when the API is unavailable", async () => {
+    mockFetch((input, init) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return healthResponse();
+      if (url.endsWith("/transactions") && init?.method === "POST") {
+        throw new TypeError("Failed to fetch");
+      }
+      if (url.includes("/transactions?")) return jsonResponse(200, []);
+      if (url.includes("/daily-balances/")) return jsonResponse(404, { detail: "Daily balance not found" });
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+    await fillOperationContext(user);
+    await user.type(screen.getByLabelText("Valor"), "42.00");
+    await user.type(screen.getByLabelText("Descrição simples"), "Venda offline");
+    await user.clear(screen.getByLabelText("Quando aconteceu"));
+    await user.type(screen.getByLabelText("Quando aconteceu"), "2026-05-20T10:00");
+    await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
+
+    expect(await screen.findByText("Movimentação salva offline. Ela será enviada quando a conexão voltar.")).toBeInTheDocument();
+    expect(screen.getByText("1 movimentação pendente")).toBeInTheDocument();
+    expect(screen.getByText("Venda offline")).toBeInTheDocument();
+    expect(screen.getByText("Pendente")).toBeInTheDocument();
+  });
+
+  test("synchronizes queued transactions automatically when the browser comes back online", async () => {
+    let postAttempts = 0;
+    const fetchMock = mockFetch((input, init) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return healthResponse();
+      if (url.endsWith("/transactions") && init?.method === "POST") {
+        postAttempts += 1;
+        if (postAttempts === 1) {
+          throw new TypeError("Failed to fetch");
+        }
+        return jsonResponse(201, {
+          id: "a55149c4-781d-4fbb-8d52-ae852c3ad872",
+          merchant_id: demoMerchantId,
+          type: "CREDIT",
+          amount: "42.00",
+          status: "CREATED",
+        });
+      }
+      if (url.includes("/transactions?")) {
+        return jsonResponse(
+          200,
+          postAttempts >= 2
+            ? [
+                transactionItem({
+                  id: "a55149c4-781d-4fbb-8d52-ae852c3ad872",
+                  amount: "42.00",
+                  description: "Venda offline",
+                  occurred_at: "2026-05-20T10:00:00",
+                  created_at: "2026-05-20T10:01:00",
+                }),
+              ]
+            : [],
+        );
+      }
+      if (url.includes("/daily-balances/")) return jsonResponse(404, { detail: "Daily balance not found" });
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+    await fillOperationContext(user);
+    await user.type(screen.getByLabelText("Valor"), "42.00");
+    await user.type(screen.getByLabelText("Descrição simples"), "Venda offline");
+    await user.clear(screen.getByLabelText("Quando aconteceu"));
+    await user.type(screen.getByLabelText("Quando aconteceu"), "2026-05-20T10:00");
+    await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
+
+    expect(await screen.findByText("1 movimentação pendente")).toBeInTheDocument();
+
+    fireEvent.online(window);
+
+    await waitFor(() => {
+      expect(postAttempts).toBe(2);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Sincronização concluída.")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8000/transactions",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  test("synchronizes queued transactions automatically when the portal loads", async () => {
+    await enqueueTransaction({
+      merchant_id: demoMerchantId,
+      client_request_id: "f11801c1-1bde-4323-9382-2bb8d8ce8f60",
+      type: "CREDIT",
+      amount: "55.00",
+      description: "Fila anterior",
+      occurred_at: "2026-05-20T10:00",
+    });
+    let postAttempts = 0;
+    mockFetch((input, init) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return healthResponse();
+      if (url.endsWith("/transactions") && init?.method === "POST") {
+        postAttempts += 1;
+        return jsonResponse(201, {
+          id: "14a961dc-1e33-4dcf-8582-d8efe80cc55d",
+          merchant_id: demoMerchantId,
+          type: "CREDIT",
+          amount: "55.00",
+          status: "CREATED",
+        });
+      }
+      if (url.includes("/transactions?")) return jsonResponse(200, []);
+      if (url.includes("/daily-balances/")) return jsonResponse(404, { detail: "Daily balance not found" });
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(postAttempts).toBe(1);
+    });
+    expect(await screen.findByText("Sincronização concluída.")).toBeInTheDocument();
+    expect(screen.getByText("Sem pendências offline")).toBeInTheDocument();
   });
 
   test("shows the pending consolidation state from realtime updates", async () => {
@@ -531,5 +671,6 @@ describe("Cash Flow operational portal", () => {
     await waitFor(() => {
       expect(screen.getByText("Não foi possível acessar o sistema. Acione o suporte.")).toBeInTheDocument();
     });
+    expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
   });
 });

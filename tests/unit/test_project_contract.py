@@ -6,9 +6,10 @@ def test_alembic_configuration_is_versioned():
     assert Path("alembic.ini").is_file()
     assert Path("src/database/alembic/env.py").is_file()
 
-    versions = list(Path("src/database/alembic/versions").glob("*.py"))
-    assert len(versions) == 1
+    versions = sorted(Path("src/database/alembic/versions").glob("*.py"))
+    assert len(versions) == 2
     migration = versions[0].read_text()
+    full_migration_contract = "\n".join(version.read_text() for version in versions)
     assert re.search(r"op\.create_table\(\s*'transactions'", migration)
     assert re.search(r"op\.create_table\(\s*'daily_balances'", migration)
     assert re.search(r"op\.create_table\(\s*'processed_events'", migration)
@@ -16,12 +17,15 @@ def test_alembic_configuration_is_versioned():
     assert "ix_daily_balances_merchant_date" not in migration
     assert "ix_transactions_merchant_id" not in migration
     assert "ForeignKeyConstraint(['transaction_id'], ['transactions.id']" in migration
+    assert "client_request_id" in full_migration_contract
+    assert "uq_transactions_client_request_id" in full_migration_contract
 
 
 def test_sql_manual_migration_matches_alembic_contract():
     sql = Path("src/database/migrations/001_initial_schema.sql").read_text()
 
     assert "CREATE TABLE outbox_events" in sql
+    assert "client_request_id UUID UNIQUE" in sql
     assert "FOREIGN KEY (transaction_id) REFERENCES transactions(id)" in sql
     assert "CREATE INDEX ix_transactions_merchant_occurred_at" in sql
     assert "CREATE INDEX ix_daily_balances_merchant_date" not in sql
@@ -48,6 +52,7 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     overload_docs = Path("docs/overload-tests.md")
     frontend_package = Path("frontend/package.json")
     frontend_app = Path("frontend/src/App.tsx")
+    offline_queue = Path("frontend/src/offlineQueue.ts")
 
     assert compliance.is_file()
     assert scalability.is_file()
@@ -55,6 +60,7 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     assert overload_docs.is_file()
     assert frontend_package.is_file()
     assert frontend_app.is_file()
+    assert offline_queue.is_file()
 
     compliance_text = compliance.read_text()
     assert "Requisito do avaliador" in compliance_text
@@ -86,6 +92,7 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     assert "Interface operacional para demonstracao" in compliance_text
     readme_text = Path("README.md").read_text()
     assert "Portal operacional" in readme_text
+    assert "IndexedDB" in readme_text
 
 
 def test_overload_worker_script_restarts_worker_on_failure():
@@ -111,7 +118,8 @@ def test_final_delivery_artifacts_are_production_ready():
     assert dockerignore.is_file()
     assert ".venv/" in dockerignore.read_text()
     assert "frontend/node_modules/" in dockerignore.read_text()
-    assert "13 passed" in verification
+    assert "16 passed" in verification
     assert "8 passed" not in verification
+    assert "client_request_id" in verification
     assert "foi implementada como uma operação atômica" in scalability
     assert "deve evoluir para uma operação atômica" not in scalability

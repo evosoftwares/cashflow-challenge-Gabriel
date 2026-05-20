@@ -2,6 +2,7 @@ export type TransactionType = "CREDIT" | "DEBIT";
 
 export type TransactionCreateRequest = {
   merchant_id: string;
+  client_request_id?: string;
   type: TransactionType;
   amount: string;
   description?: string;

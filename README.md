@@ -64,6 +64,7 @@ Fluxo principal:
 - Outbox Pattern para evitar perda de evento entre banco e RabbitMQ.
 - Upsert atômico no consolidado diário para reduzir risco de concorrência.
 - Atualização em tempo real do resumo diário via Server-Sent Events.
+- Fila offline local no portal com IndexedDB e `client_request_id` idempotente na API.
 - Alembic para versionar o schema do banco.
 - API Key simples para proteger endpoints no escopo do desafio.
 - Portal operacional React para demonstrar criação, listagem e consulta do consolidado.
@@ -77,6 +78,7 @@ Os ADRs estão em `docs/adr/`.
 - Consolidado diário: `GET /daily-balances/{date}`.
 - Resumo diário em tempo real: `GET /daily-balances/{date}/stream`.
 - Portal operacional: `frontend/`.
+- Registro offline no portal com sincronização automática: `docs/offline-mode.md`.
 - Domínios e capacidades: `docs/domains.md`.
 - Requisitos funcionais e não funcionais: `docs/requirements.md`.
 - Arquitetura alvo: `docs/architecture.md`.
@@ -114,6 +116,14 @@ RabbitMQ Management: http://localhost:15672
 ```
 
 O portal usa a chave local configurada por variável de ambiente para consumir a API sem expor esse campo ao operador.
+
+## Fluxo online/offline do portal
+
+O portal operacional funciona em modo offline quando a tela já está aberta e a API ou a rede fica indisponível. Nesse cenário, o lançamento é salvo em uma fila local no navegador usando IndexedDB, aparece na tabela com selo `Pendente` e é sincronizado automaticamente quando a conexão volta.
+
+Cada tentativa enviada pelo portal usa um `client_request_id`. A API mantém esse campo com índice único em `transactions`; se o mesmo lançamento for reenviado, a transação existente é retornada sem criar nova linha nem novo evento de Outbox.
+
+Limite assumido: os dados pendentes ficam apenas no navegador do operador até a sincronização. Abrir ou recarregar o portal totalmente sem rede, com app shell offline, é uma evolução futura de PWA/service worker.
 
 Para executar a migration manualmente:
 
@@ -288,6 +298,7 @@ curl -X POST http://localhost:8000/transactions \
   -H "X-API-Key: local-dev-key" \
   -d '{
     "merchant_id": "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11",
+    "client_request_id": "9e6f2a1e-4b12-4977-875d-dba617b7a450",
     "type": "CREDIT",
     "amount": 100.00,
     "description": "Venda no cartão",
@@ -306,6 +317,8 @@ Resposta:
   "status": "CREATED"
 }
 ```
+
+O campo `client_request_id` é opcional para compatibilidade com clientes antigos, mas recomendado para reenvio seguro em fluxos offline.
 
 ### GET /transactions
 

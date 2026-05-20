@@ -3,8 +3,12 @@ import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import type { TransactionListItem } from "../api/client";
 
+export type TransactionTableItem = TransactionListItem & {
+  sync_status?: "pending" | "syncing" | "failed";
+};
+
 type TransactionsTableProps = {
-  transactions: TransactionListItem[];
+  transactions: TransactionTableItem[];
   disabled: boolean;
   filterDate: string;
   onFilterDateChange: (value: string) => void;
@@ -48,14 +52,14 @@ function normalizeSearch(value: string): string {
     .trim();
 }
 
-function getSortValue(transaction: TransactionListItem, sortKey: SortKey): string | number {
+function getSortValue(transaction: TransactionTableItem, sortKey: SortKey): string | number {
   if (sortKey === "amount") return Number(transaction.amount);
   if (sortKey === "type") return formatType(transaction.type);
   if (sortKey === "description") return transaction.description ?? "";
   return new Date(transaction[sortKey]).getTime();
 }
 
-function compareTransactions(a: TransactionListItem, b: TransactionListItem, sortKey: SortKey, direction: SortDirection) {
+function compareTransactions(a: TransactionTableItem, b: TransactionTableItem, sortKey: SortKey, direction: SortDirection) {
   const firstValue = getSortValue(a, sortKey);
   const secondValue = getSortValue(b, sortKey);
   const directionMultiplier = direction === "asc" ? 1 : -1;
@@ -67,7 +71,7 @@ function compareTransactions(a: TransactionListItem, b: TransactionListItem, sor
   return String(firstValue).localeCompare(String(secondValue), "pt-BR", { sensitivity: "base" }) * directionMultiplier;
 }
 
-function searchableText(transaction: TransactionListItem): string {
+function searchableText(transaction: TransactionTableItem): string {
   return normalizeSearch(
     [
       formatType(transaction.type),
@@ -81,6 +85,13 @@ function searchableText(transaction: TransactionListItem): string {
       formatDateTime(transaction.created_at),
     ].join(" "),
   );
+}
+
+function syncStatusLabel(status: TransactionTableItem["sync_status"]) {
+  if (status === "syncing") return "Sincronizando";
+  if (status === "failed") return "Falha no envio";
+  if (status === "pending") return "Pendente";
+  return null;
 }
 
 export function TransactionsTable({
@@ -217,7 +228,14 @@ export function TransactionsTable({
                   <td className={`amount-cell amount-cell--${transaction.type.toLowerCase()}`} data-label="Valor">
                     {formatCurrency(transaction.amount)}
                   </td>
-                  <td data-label="Descrição">{transaction.description ?? "-"}</td>
+                  <td data-label="Descrição">
+                    <span>{transaction.description ?? "-"}</span>
+                    {transaction.sync_status ? (
+                      <span className={`sync-badge sync-badge--${transaction.sync_status}`}>
+                        {syncStatusLabel(transaction.sync_status)}
+                      </span>
+                    ) : null}
+                  </td>
                   <td data-label="Ocorrência">{formatDateTime(transaction.occurred_at)}</td>
                   <td data-label="Criação">{formatDateTime(transaction.created_at)}</td>
                 </tr>
