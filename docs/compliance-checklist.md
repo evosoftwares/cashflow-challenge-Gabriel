@@ -21,6 +21,7 @@ Este checklist mapeia cada requisito do avaliador para evidencia objetiva no rep
 | Perda maxima de 5% em pico | Atendido | Threshold k6 `http_req_failed < 5%` |
 | Arquitetura de transicao, se necessaria | Atendido | `docs/transition-architecture.md` |
 | Estimativa de custos | Atendido | `docs/costs.md` |
+| Escalabilidade e plano de crescimento | Atendido | `docs/scalability.md`, `README.md` |
 | Monitoramento e observabilidade | Atendido | `/health`, logs basicos, `docs/observability.md` |
 | Criterios de seguranca para integracao | Atendido | API Key, validacao de payload, `docs/security.md` |
 

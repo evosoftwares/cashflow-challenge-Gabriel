@@ -29,15 +29,23 @@ def test_runtime_schema_is_owned_by_alembic_only():
 
 def test_compliance_and_docker_e2e_artifacts_are_versioned():
     compliance = Path("docs/compliance-checklist.md")
+    scalability = Path("docs/scalability.md")
     docker_e2e = Path("tests/integration/docker_e2e.sh")
 
     assert compliance.is_file()
+    assert scalability.is_file()
     assert docker_e2e.is_file()
 
     compliance_text = compliance.read_text()
     assert "Requisito do avaliador" in compliance_text
     assert "Evidencia no repositorio" in compliance_text
     assert "Supabase" in compliance_text
+    assert "Escalabilidade" in compliance_text
+
+    scalability_text = scalability.read_text()
+    assert "Outbox Pattern" in scalability_text
+    assert "Dead Letter Queue" in scalability_text
+    assert "daily_balances" in scalability_text
 
     docker_e2e_text = docker_e2e.read_text()
     assert "docker compose stop worker" in docker_e2e_text

@@ -240,6 +240,14 @@ O schema é versionado com Alembic. No Docker Compose, o serviço `migrate` exec
 
 Supabase não foi usado nesta entrega. A arquitetura alvo usa PostgreSQL e a execução local usa o PostgreSQL do Docker Compose. Como evolução operacional, a mesma migration Alembic pode ser aplicada em um PostgreSQL gerenciado, incluindo Supabase, desde que a `DATABASE_URL` remota seja fornecida por variável de ambiente segura.
 
+## Escalabilidade
+
+A arquitetura escala de forma proporcional ao escopo do desafio. A API pode ser replicada horizontalmente, o worker pode ganhar mais instâncias e o RabbitMQ absorve picos temporários mantendo lançamento e consolidação desacoplados.
+
+O principal gargalo esperado em crescimento acelerado é a atualização concorrente de `daily_balances` para o mesmo `merchant_id` e a mesma `balance_date`. O plano de evolução é primeiro escalar componentes e observar métricas, depois adicionar DLQ, retry, Outbox Pattern e alertas, e só então avaliar batch, particionamento, cache, read replicas ou extração para serviços independentes.
+
+O plano completo está em `docs/scalability.md`.
+
 ## Trade-offs
 
 A arquitetura modular evita a complexidade operacional de microsserviços para um domínio pequeno, mas mantém fronteiras claras para uma extração futura.

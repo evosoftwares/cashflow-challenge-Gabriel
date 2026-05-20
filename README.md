@@ -70,6 +70,7 @@ Os ADRs estão em `docs/adr/`.
 - Segurança: `docs/security.md`.
 - Observabilidade: `docs/observability.md`.
 - Custos: `docs/costs.md`.
+- Escalabilidade e plano de crescimento: `docs/scalability.md`.
 - Arquitetura de transição: `docs/transition-architecture.md`.
 - Checklist de aderência ao desafio: `docs/compliance-checklist.md`.
 - Evidências de verificação: `docs/verification.md`.
@@ -181,6 +182,19 @@ make load-test
 ```
 
 O script `tests/load/daily_balance_50rps.js` executa 50 requisições por segundo por 1 minuto no endpoint de consolidado diário e aceita no máximo 5% de falha.
+
+## Escalabilidade e crescimento rápido
+
+A arquitetura atual é escalável de forma proporcional ao desafio. A API pode ser replicada horizontalmente, o worker pode ganhar mais instâncias e o RabbitMQ absorve picos temporários mantendo o registro de lançamentos desacoplado da consolidação.
+
+Se o sistema crescer rápido demais, o plano é evoluir em camadas:
+
+1. Escalar API, workers e recursos de PostgreSQL/RabbitMQ.
+2. Adicionar Dead Letter Queue, retry exponencial, Outbox Pattern, métricas e alertas.
+3. Otimizar consolidação com batch, particionamento por data ou `merchant_id`, cache e read replicas.
+4. Separar módulos em serviços independentes e avaliar broker de maior escala apenas se houver evidência de necessidade.
+
+O plano completo está documentado em `docs/scalability.md`.
 
 ## Banco remoto
 
