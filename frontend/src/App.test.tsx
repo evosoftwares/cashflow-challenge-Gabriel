@@ -296,7 +296,7 @@ describe("Cash Flow operational portal", () => {
       expect(screen.getByText("Sem pendências offline")).toBeInTheDocument();
     });
     await waitFor(() => {
-      expect(screen.getByText("R$ 42,00")).toBeInTheDocument();
+      expect(screen.getAllByText("R$ 42,00").length).toBeGreaterThan(0);
     }, { timeout: 7_000 });
     expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
@@ -304,6 +304,91 @@ describe("Cash Flow operational portal", () => {
       expect.objectContaining({ method: "POST" }),
     );
   }, 12_000);
+
+  test("refreshes the daily balance after queued sync when the first balance read is stale", async () => {
+    let postAttempts = 0;
+    let balanceReads = 0;
+    mockFetch((input, init) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return healthResponse();
+      if (url.endsWith("/transactions") && init?.method === "POST") {
+        postAttempts += 1;
+        if (postAttempts === 1) {
+          throw new TypeError("Failed to fetch");
+        }
+        return jsonResponse(201, {
+          id: "4d90a967-aeec-445c-b737-9f6b691e3933",
+          merchant_id: demoMerchantId,
+          type: "CREDIT",
+          amount: "4.56",
+          status: "CREATED",
+        });
+      }
+      if (url.includes("/transactions?")) {
+        return jsonResponse(
+          200,
+          postAttempts >= 2
+            ? [
+                transactionItem({
+                  id: "4d90a967-aeec-445c-b737-9f6b691e3933",
+                  amount: "4.56",
+                  description: "Venda offline",
+                  occurred_at: "2026-05-20T10:00:00",
+                  created_at: "2026-05-20T10:01:00",
+                }),
+              ]
+            : [],
+        );
+      }
+      if (url.includes("/daily-balances/") && url.includes("/stream")) {
+        return streamResponse(['event: daily_balance\ndata: {"status":"pending"}\n\n']);
+      }
+      if (url.includes("/daily-balances/")) {
+        balanceReads += 1;
+        if (balanceReads === 1) {
+          return jsonResponse(200, {
+            merchant_id: demoMerchantId,
+            date: "2026-05-20",
+            total_credit: "48.40",
+            total_debit: "32.39",
+            balance: "16.01",
+          });
+        }
+        return jsonResponse(200, {
+          merchant_id: demoMerchantId,
+          date: "2026-05-20",
+          total_credit: "52.96",
+          total_debit: "32.39",
+          balance: "20.57",
+        });
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+    await fillOperationContext(user);
+    await user.type(screen.getByLabelText("Valor"), "4.56");
+    await user.type(screen.getByLabelText("Descrição simples"), "Venda offline");
+    await user.clear(screen.getByLabelText("Quando aconteceu"));
+    await user.type(screen.getByLabelText("Quando aconteceu"), "2026-05-20T10:00");
+    await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
+
+    expect(await screen.findByText("1 movimentação pendente")).toBeInTheDocument();
+
+    fireEvent.online(window);
+
+    await waitFor(() => {
+      expect(postAttempts).toBe(2);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Sem pendências offline")).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getAllByText("R$ 20,57").length).toBeGreaterThan(0);
+    }, { timeout: 5_000 });
+    expect(balanceReads).toBeGreaterThanOrEqual(2);
+  }, 8_000);
 
   test("synchronizes queued transactions automatically when the browser comes back online", async () => {
     let postAttempts = 0;

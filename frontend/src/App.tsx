@@ -334,7 +334,7 @@ export default function App() {
 
       if (hasProtectedContext) {
         await refreshTransactions({ clearMessage: false });
-        void refreshDailyBalance({ retryPending: true });
+        void refreshDailyBalance({ retryPending: true, settleAfterSuccess: true });
       }
       setSyncState(navigator.onLine ? "online" : "offline");
       setMessage({ tone: "success", text: "Sincronização concluída." });
@@ -343,7 +343,7 @@ export default function App() {
     }
   }
 
-  async function refreshDailyBalance(options: { retryPending?: boolean } = {}) {
+  async function refreshDailyBalance(options: { retryPending?: boolean; settleAfterSuccess?: boolean } = {}) {
     if (!hasProtectedContext) return;
     setBalanceState("loading");
     setMessage(null);
@@ -353,6 +353,10 @@ export default function App() {
         const balance = await getDailyBalance(defaultApiKey, merchantId.trim(), operationDate);
         setDailyBalance(balance);
         setBalanceState("available");
+        if (options.settleAfterSuccess && attempt < dailyBalanceRetryAttempts) {
+          await wait(dailyBalanceRetryDelayMs);
+          continue;
+        }
         return;
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) {
@@ -394,7 +398,8 @@ export default function App() {
       await createTransaction(defaultApiKey, payload);
       setAmount("");
       setDescription("");
-      await Promise.all([refreshTransactions(), refreshDailyBalance()]);
+      await refreshTransactions();
+      void refreshDailyBalance({ retryPending: true, settleAfterSuccess: true });
       setMessage({ tone: "success", text: "Movimentação salva com sucesso." });
     } catch (error) {
       if (shouldQueueForLater(error)) {
