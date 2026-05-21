@@ -61,6 +61,50 @@ GET /health  -> 200 OK
 GET /metrics -> 200 OK
 ```
 
+## Auditoria QA do banco de dados
+
+Comandos executados contra o PostgreSQL real do Docker Compose:
+
+```bash
+docker compose exec -T postgres psql -U cashflow -d cashflow -c "SELECT * FROM alembic_version;"
+docker compose exec -T postgres psql -U cashflow -d cashflow -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;"
+docker compose exec -T postgres psql -U cashflow -d cashflow -c "SELECT tablename, indexname FROM pg_indexes WHERE schemaname='public' ORDER BY tablename, indexname;"
+docker compose exec -T rabbitmq rabbitmqctl list_queues name messages messages_unacknowledged
+docker compose exec -T api alembic current
+```
+
+Resultado validado:
+
+```text
+alembic_version: 202605200002
+tabelas: alembic_version, daily_balances, outbox_events, processed_events, transactions
+fila transaction.created: 0 mensagens, 0 unacknowledged
+alembic current: 202605200002 (head)
+```
+
+Contrato das tabelas validado no banco:
+
+| Tabela | Validação |
+| --- | --- |
+| `transactions` | `UUID` como PK, `client_request_id` único, `type` restrito a `CREDIT`/`DEBIT`, `amount NUMERIC(14,2)` com `amount > 0`, índice `(merchant_id, occurred_at)`. |
+| `daily_balances` | `UUID` como PK, `merchant_id`, `balance_date`, totais `NUMERIC(14,2)`, unique `(merchant_id, balance_date)`. |
+| `processed_events` | `event_id` como PK e FK `transaction_id` para `transactions(id)`. |
+| `outbox_events` | `UUID` como PK, `payload JSON`, `status` restrito a `PENDING`/`PUBLISHED`/`FAILED`, índice `(status, created_at)`. |
+
+Fluxo API + banco validado:
+
+```text
+POST /transactions com client_request_id -> 201 Created
+Reenvio com mesmo client_request_id -> 201 Created com o mesmo id
+Banco: 1 transação, 1 client_request_id, 1 evento Outbox
+Worker: 1 evento processado em processed_events
+GET /daily-balances/{date} -> saldo consolidado esperado
+Valor negativo -> 422
+Endpoint protegido sem API Key -> 401
+```
+
+Conclusão da auditoria de banco: o schema real está alinhado às migrations Alembic, aos modelos SQLAlchemy, ao fluxo de negócio e aos requisitos do desafio.
+
 Smoke test funcional em Docker:
 
 ```text

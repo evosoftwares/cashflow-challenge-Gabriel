@@ -45,7 +45,21 @@ Este checklist mapeia cada requisito do avaliador para evidencia objetiva no rep
 Antes de entregar, executar:
 
 ```bash
-pytest
+git status --short
+PATH=.venv/bin:$PATH pytest -q
+npm --prefix frontend test
+npm --prefix frontend run build
+docker compose config --quiet
 make docker-e2e
 make load-test
+make overload-read
+make overload-worker
+```
+
+Tambem validar no banco real:
+
+```bash
+docker compose exec -T postgres psql -U cashflow -d cashflow -c "SELECT * FROM alembic_version;"
+docker compose exec -T postgres psql -U cashflow -d cashflow -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;"
+docker compose exec -T rabbitmq rabbitmqctl list_queues name messages messages_unacknowledged
 ```
