@@ -88,7 +88,7 @@ Os ADRs estão em `docs/adr/`.
 - Custos: `docs/costs.md`.
 - Escalabilidade e plano de crescimento: `docs/scalability.md`.
 - Arquitetura de transição: `docs/transition-architecture.md`.
-- Prontidão final para entrega e produção real: `docs/production-readiness.md`.
+- Prontidão final para avaliação local: `docs/production-readiness.md`.
 - Checklist de aderência ao desafio: `docs/compliance-checklist.md`.
 - Evidências de verificação: `docs/verification.md`.
 - Histórico da sessão de desenvolvimento: `docs/development-session-2026-05-20.md`.
@@ -118,46 +118,11 @@ RabbitMQ Management: http://localhost:15672
 
 O portal usa a chave local configurada por variável de ambiente para consumir a API sem expor esse campo ao operador.
 
-## Como rodar em VPS/VM cloud
-
-O caminho recomendado para buscar gratuidade é uma VM Oracle Cloud Always Free ARM rodando Docker Compose. Esse caminho preserva a arquitetura completa em um único host: Caddy, portal, API, PostgreSQL, RabbitMQ, worker, Outbox Dispatcher e migrations.
-
-Arquivos principais:
-
-```text
-docker-compose.prod.yml
-.env.production.example
-deploy/Caddyfile
-frontend/Dockerfile
-frontend/public/manifest.webmanifest
-frontend/public/sw.js
-scripts/provision-ubuntu-docker.sh
-scripts/deploy-vps.sh
-```
-
-Fluxo resumido:
-
-```bash
-ssh ubuntu@SEU_IP_PUBLICO
-sudo bash scripts/provision-ubuntu-docker.sh
-cp .env.production.example .env.production
-nano .env.production
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
-```
-
-Com o proxy de produção, a API fica sob `/api`:
-
-```bash
-curl http://SEU_IP_PUBLICO/api/health
-```
-
-O guia completo está em `docs/cloud-deployment.md`.
-
 ## Fluxo online/offline do portal
 
 O portal operacional funciona em modo offline quando a tela já está aberta e a API ou a rede fica indisponível. Nesse cenário, o lançamento é salvo em uma fila local no navegador usando IndexedDB, aparece na tabela com selo `Pendente` e é sincronizado automaticamente quando a conexão volta.
 
-Em produção, o portal também é entregue como PWA com `manifest.webmanifest` e service worker. Isso permite abrir o app shell a partir do cache depois do primeiro acesso, reduzindo a dependência operacional de internet no dispositivo do operador. O backend cloud só recebe as movimentações quando a conexão volta.
+O portal também possui `manifest.webmanifest` e service worker para cache do app shell em builds de produção do front-end. No caminho oficial do desafio, a validação completa continua sendo local via Docker Compose.
 
 Cada tentativa enviada pelo portal usa um `client_request_id`. A API mantém esse campo com índice único em `transactions`; se o mesmo lançamento for reenviado, a transação existente é retornada sem criar nova linha nem novo evento de Outbox.
 

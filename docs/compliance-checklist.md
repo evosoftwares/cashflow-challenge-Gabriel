@@ -19,7 +19,6 @@ Este checklist mapeia cada requisito do avaliador para evidencia objetiva no rep
 | Documentacao versionada no repositorio | Atendido | `docs/` |
 | Interface operacional para demonstracao | Atendido | `frontend/`, `docker-compose.yml`, `README.md` |
 | Registro offline no portal | Atendido | IndexedDB em `frontend/src/offlineQueue.ts`, idempotencia por `client_request_id`, `docs/offline-mode.md` |
-| Caminho de publicacao em VPS/VM cloud | Atendido | `docker-compose.prod.yml`, `deploy/Caddyfile`, `docs/cloud-deployment.md`, `.env.production.example` |
 | App shell instalavel/cacheavel para reduzir dependencia do dispositivo | Atendido | `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `frontend/src/pwa.ts` |
 | Controle de lancamento nao indisponivel se consolidado cair | Atendido | RabbitMQ duravel, worker separado, `tests/integration/docker_e2e.sh` |
 | Publicacao confiavel de eventos | Atendido | `outbox_events`, `src/messaging/outbox_dispatcher.py` |
@@ -40,7 +39,7 @@ Este checklist mapeia cada requisito do avaliador para evidencia objetiva no rep
 - RabbitMQ foi escolhido por atender ao desacoplamento entre lancamento e consolidacao com menor complexidade que Kafka para o volume informado.
 - O banco oficial da execucao local e PostgreSQL via Docker Compose.
 - Supabase nao e requisito do avaliador. Pode ser usado futuramente como PostgreSQL gerenciado, mas nao faz parte da entrega obrigatoria.
-- O deploy real em cloud depende de uma VM criada e acesso SSH. A entrega final inclui o caminho de VPS/VM com Docker Compose em `docs/cloud-deployment.md`, com foco em gratuidade via Oracle Cloud Always Free quando houver capacidade disponivel.
+- Hospedagem externa nao faz parte do caminho oficial. A entrega oficial e executavel localmente por Docker Compose para evitar dependencia de provedor externo.
 
 ## Evidencias finais recomendadas
 

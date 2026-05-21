@@ -1,12 +1,12 @@
-# Prontidao de Producao
+# Prontidao de Entrega Local
 
-Este documento consolida os ajustes finais para entrega do desafio como uma solucao pronta para avaliacao tecnica e com caminho claro para producao.
+Este documento consolida os ajustes finais para entrega do desafio como uma solucao pronta para avaliacao tecnica local.
 
 ## Escopo desta entrega
 
 A entrega oficial e executavel localmente via Docker Compose. Ela sobe API, portal operacional, PostgreSQL, RabbitMQ, worker de consolidacao, Outbox Dispatcher e migration Alembic.
 
-Tambem foi preparado um caminho de deploy em VPS/VM com Docker Compose, documentado em `docs/cloud-deployment.md`. O alvo recomendado para buscar gratuidade e Oracle Cloud Always Free ARM, mantendo todos os servicos no mesmo host.
+Hospedagem externa nao faz parte do caminho oficial desta entrega. O foco e permitir que o avaliador rode, teste e audite tudo localmente com um unico `docker compose up --build`.
 
 ## Itens implementados
 
@@ -24,9 +24,7 @@ Tambem foi preparado um caminho de deploy em VPS/VM com Docker Compose, document
 - Endpoint `/metrics` com contadores locais.
 - Testes unitarios, integracao, Docker E2E, carga e overload.
 - CI no GitHub Actions para backend, frontend e validacao do Docker Compose.
-- Compose de producao para VPS em `docker-compose.prod.yml`.
-- Proxy Caddy com roteamento `/api` e HTTPS automatico quando houver dominio.
-- Portal em modo PWA com cache do app shell e fila offline em IndexedDB.
+- Portal com fila offline em IndexedDB e app shell cacheavel em build de front-end.
 
 ## Checklist operacional
 
@@ -42,9 +40,9 @@ make docker-e2e
 make load-test
 ```
 
-## Prontidao para producao real
+## Evolucao para producao real
 
-Para transformar esta entrega em operacao produtiva, os proximos passos seriam:
+Para transformar esta entrega local em operacao produtiva, os proximos passos seriam:
 
 - Trocar credenciais locais por secrets gerenciados.
 - Usar HTTPS obrigatorio.
@@ -57,18 +55,6 @@ Para transformar esta entrega em operacao produtiva, os proximos passos seriam:
 - Configurar alertas para fila acumulada, falha de worker e atraso de consolidacao.
 - Adicionar Dead Letter Queue e retry exponencial com limite.
 - Definir runbook de incidente para atraso no consolidado.
-
-## Caminho gratuito
-
-O caminho gratuito recomendado roda em uma unica VM Always Free. Essa opcao e suficiente para demonstracao, avaliacao e operacao pequena, mas nao substitui alta disponibilidade real.
-
-Limites aceitos nesse caminho:
-
-- banco, broker e aplicacao compartilham o mesmo host;
-- a VM segue os limites e disponibilidade do provedor gratuito;
-- sem dominio, o acesso por IP usa HTTP;
-- com dominio apontando para a VM, Caddy pode emitir HTTPS automaticamente;
-- backup externo precisa ser configurado para proteger contra perda da VM.
 
 ## Criterio arquitetural
 

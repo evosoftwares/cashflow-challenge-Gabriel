@@ -54,23 +54,6 @@ Validação local final também confirmou:
 vite build completed successfully
 ```
 
-Validação de produção para VPS/VM:
-
-```bash
-docker compose --env-file .env.production.example -f docker-compose.prod.yml config --quiet
-docker compose --env-file .env.production.example -f docker-compose.prod.yml build frontend api
-```
-
-Resultado:
-
-```text
-config valid
-frontend image built
-api image built
-```
-
-Essa validação confirma que o Compose de produção, o proxy Caddy, o front-end estático, a API e as variáveis obrigatórias estão coerentes para execução em uma VM. A publicação real em cloud depende de uma VM criada e de acesso SSH.
-
 Runtime Docker validado:
 
 ```text

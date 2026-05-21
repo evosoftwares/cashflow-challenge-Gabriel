@@ -121,7 +121,7 @@ def test_final_delivery_artifacts_are_production_ready():
     dockerignore = Path(".dockerignore")
 
     assert production_readiness.is_file()
-    assert "Prontidao de Producao" in production_readiness.read_text()
+    assert "Prontidao de Entrega Local" in production_readiness.read_text()
     assert workflow.is_file()
     assert "pytest" in workflow.read_text()
     assert "npm --prefix frontend test" in workflow.read_text()
@@ -135,51 +135,40 @@ def test_final_delivery_artifacts_are_production_ready():
     assert "deve evoluir para uma operação atômica" not in scalability
 
 
-def test_free_vps_cloud_deployment_artifacts_are_versioned():
-    compose_prod = Path("docker-compose.prod.yml")
-    caddyfile = Path("deploy/Caddyfile")
-    production_env = Path(".env.production.example")
-    cloud_docs = Path("docs/cloud-deployment.md")
-    frontend_dockerfile = Path("frontend/Dockerfile")
-    frontend_nginx = Path("frontend/nginx.conf")
+def test_official_delivery_is_local_docker_compose_only():
+    readme = Path("README.md").read_text()
+    compliance = Path("docs/compliance-checklist.md").read_text()
+    production_readiness = Path("docs/production-readiness.md").read_text()
+    costs = Path("docs/costs.md").read_text()
+    verification = Path("docs/verification.md").read_text()
+    makefile = Path("Makefile").read_text()
+    compose = Path("docker-compose.yml").read_text()
     web_manifest = Path("frontend/public/manifest.webmanifest")
     service_worker = Path("frontend/public/sw.js")
-    deploy_script = Path("scripts/deploy-vps.sh")
 
-    for artifact in [
-        compose_prod,
-        caddyfile,
-        production_env,
-        cloud_docs,
-        frontend_dockerfile,
-        frontend_nginx,
-        web_manifest,
-        service_worker,
-        deploy_script,
-    ]:
-        assert artifact.is_file(), artifact
+    assert Path("docker-compose.yml").is_file()
+    assert Path(".env.example").is_file()
+    assert not Path("docker-compose.prod.yml").exists()
+    assert not Path(".env.production.example").exists()
+    assert not Path("docs/cloud-deployment.md").exists()
+    assert not Path("deploy/Caddyfile").exists()
+    assert not Path("scripts/deploy-vps.sh").exists()
+    assert not Path("scripts/provision-ubuntu-docker.sh").exists()
+    assert not Path("frontend/Dockerfile").exists()
+    assert not Path("frontend/nginx.conf").exists()
 
-    compose_text = compose_prod.read_text()
-    assert "caddy:" in compose_text
-    assert "postgres:" in compose_text
-    assert "rabbitmq:" in compose_text
-    assert "outbox-dispatcher:" in compose_text
-    assert "ports:" not in compose_text.split("postgres:", 1)[1].split("rabbitmq:", 1)[0]
-    assert "ports:" not in compose_text.split("rabbitmq:", 1)[1].split("volumes:", 1)[0]
-
-    caddy_text = caddyfile.read_text()
-    assert "handle_path /api/*" in caddy_text
-    assert "reverse_proxy api:8000" in caddy_text
-    assert "reverse_proxy frontend:80" in caddy_text
-
-    env_text = production_env.read_text()
-    assert "APP_DOMAIN=" in env_text
-    assert "API_KEY=" in env_text
-    assert "POSTGRES_PASSWORD=" in env_text
-    assert "RABBITMQ_DEFAULT_PASS=" in env_text
-    assert "local-dev-key" not in env_text
-    assert ".env.production" in Path(".gitignore").read_text()
-    assert ".env.production" in Path(".dockerignore").read_text()
+    assert "docker compose up --build" in readme
+    assert "Portal operacional: http://localhost:5173" in readme
+    assert "Hospedagem externa nao faz parte do caminho oficial" in compliance
+    assert "executavel localmente via Docker Compose" in production_readiness
+    assert "execução local via Docker Compose" in costs
+    assert "docker-compose.prod.yml" not in verification
+    assert "prod-up" not in makefile
+    assert "frontend:" in compose
+    assert "api:" in compose
+    assert "postgres:" in compose
+    assert "rabbitmq:" in compose
+    assert "outbox-dispatcher:" in compose
 
     manifest_text = web_manifest.read_text()
     assert "Mercado do Bairro Fluxo de Caixa" in manifest_text
