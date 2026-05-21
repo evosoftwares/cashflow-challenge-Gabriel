@@ -30,6 +30,7 @@ def dispatch_once(batch_size: int = 50) -> int:
                     metric_name="cashflow_outbox_events_total",
                     metric_labels={"status": "published"},
                     event_id=str(event.id),
+                    correlation_id=event.payload.get("correlation_id"),
                 )
             except Exception as exc:
                 db.rollback()
@@ -46,6 +47,7 @@ def dispatch_once(batch_size: int = 50) -> int:
                     metric_labels={"status": "failed"},
                     level=logging.ERROR,
                     event_id=str(event.id),
+                    correlation_id=event.payload.get("correlation_id"),
                     error_type=type(exc).__name__,
                     error_message=str(exc),
                 )

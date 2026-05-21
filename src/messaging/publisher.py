@@ -22,6 +22,7 @@ class RabbitMQPublisher:
                 properties=pika.BasicProperties(
                     content_type="application/json",
                     delivery_mode=2,
+                    correlation_id=event.get("correlation_id"),
                 ),
                 mandatory=True,
             )

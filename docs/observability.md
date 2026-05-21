@@ -5,6 +5,7 @@
 - Endpoint `/health`.
 - Endpoint `/metrics` em formato texto compatível com Prometheus.
 - Logs estruturados em JSON com contrato metrificado.
+- Correlação ponta a ponta com header `X-Correlation-ID`.
 - Logs de criação de lançamento com contador por tipo.
 - Logs de publicação do Outbox com contador por status.
 - Logs de processamento do consolidado com contador por status.
@@ -22,6 +23,7 @@ Cada evento relevante é registrado em JSON com os campos mínimos:
   "log_schema_version": "1.0",
   "event": "transaction_created",
   "component": "transactions",
+  "correlation_id": "8c0a1e6d-19cb-4c84-8548-ec0570d95d2b",
   "metric": {
     "name": "cashflow_transactions_created_total",
     "value": 1,
@@ -35,6 +37,32 @@ Cada evento relevante é registrado em JSON com os campos mínimos:
 Campos adicionais, como `transaction_id`, `merchant_id`, `event_id`, `status`, `duration_ms` e `error_type`, são adicionados conforme o contexto.
 
 Essa padronização permite que os logs sejam consumidos por uma ferramenta centralizada no futuro sem mudar o contrato de emissão da aplicação.
+
+## Correlação de Requisições
+
+A API aceita o header:
+
+```text
+X-Correlation-ID: 8c0a1e6d-19cb-4c84-8548-ec0570d95d2b
+```
+
+Se o cliente não enviar esse header, a API gera um UUID automaticamente. Em todos os casos, o valor é devolvido na resposta:
+
+```text
+X-Correlation-ID: 8c0a1e6d-19cb-4c84-8548-ec0570d95d2b
+```
+
+Esse identificador é propagado para:
+
+- log HTTP da API;
+- log de criação do lançamento;
+- payload do evento em `outbox_events`;
+- publicação no RabbitMQ;
+- logs do Outbox Dispatcher;
+- logs do worker de consolidação;
+- logs de consolidação bem-sucedida, duplicada ou com falha.
+
+Com isso, uma movimentação pode ser investigada ponta a ponta procurando o mesmo `correlation_id` nos logs da API, dispatcher, fila e worker.
 
 ## Métricas expostas
 
@@ -65,6 +93,7 @@ cashflow_consolidation_events_total{status="success"} 10
   "log_schema_version": "1.0",
   "event": "transaction_created",
   "component": "transactions",
+  "correlation_id": "8c0a1e6d-19cb-4c84-8548-ec0570d95d2b",
   "metric": {
     "name": "cashflow_transactions_created_total",
     "value": 1,
@@ -85,6 +114,7 @@ cashflow_consolidation_events_total{status="success"} 10
   "log_schema_version": "1.0",
   "event": "transaction_consolidated",
   "component": "consolidation",
+  "correlation_id": "8c0a1e6d-19cb-4c84-8548-ec0570d95d2b",
   "metric": {
     "name": "cashflow_consolidation_events_total",
     "value": 1,
@@ -103,6 +133,42 @@ cashflow_consolidation_events_total{status="success"} 10
 As métricas são mantidas em memória por processo. Isso é proporcional ao desafio e suficiente para execução local, mas não substitui um coletor centralizado em produção.
 
 Em produção, cada réplica de API, worker e Outbox Dispatcher deve ser coletada por Prometheus ou por um agente equivalente. Logs devem ser enviados para uma ferramenta centralizada, como Loki, OpenSearch, Datadog ou Cloud Logging.
+
+## Runbook de Investigação
+
+Quando uma movimentação não aparecer no consolidado:
+
+1. Pegue o `X-Correlation-ID` retornado pela API ou informado pelo cliente.
+2. Busque esse valor nos logs:
+
+```bash
+docker compose logs api worker outbox-dispatcher | grep "8c0a1e6d-19cb-4c84-8548-ec0570d95d2b"
+```
+
+3. Verifique se o lançamento foi criado:
+
+```bash
+docker compose exec -T postgres psql -U cashflow -d cashflow -c "SELECT id, merchant_id, type, amount, created_at FROM transactions ORDER BY created_at DESC LIMIT 5;"
+```
+
+4. Verifique o Outbox:
+
+```bash
+docker compose exec -T postgres psql -U cashflow -d cashflow -c "SELECT id, status, attempts, last_error, created_at, published_at FROM outbox_events ORDER BY created_at DESC LIMIT 5;"
+```
+
+5. Verifique a fila RabbitMQ:
+
+```bash
+docker compose exec -T rabbitmq rabbitmqctl list_queues name messages messages_unacknowledged
+```
+
+Interpretação rápida:
+
+- Se a transação existe e o Outbox está `PENDING`, o problema está no dispatcher ou RabbitMQ.
+- Se o Outbox está `PUBLISHED` e a fila cresce, o problema está no worker ou na consolidação.
+- Se o worker registra erro com o mesmo `correlation_id`, investigue `error_type` e `error_message`.
+- Se o evento aparece como `duplicate`, a idempotência atuou e evitou reprocessamento.
 
 ## Métricas recomendadas para produção
 

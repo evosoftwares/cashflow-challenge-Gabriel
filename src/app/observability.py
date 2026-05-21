@@ -4,8 +4,10 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from threading import Lock
 from typing import Any
+from uuid import uuid4
 
 LOG_SCHEMA_VERSION = "1.0"
+CORRELATION_ID_HEADER = "X-Correlation-ID"
 
 
 class MetricsRegistry:
@@ -41,6 +43,14 @@ metrics_registry = MetricsRegistry()
 
 def configure_logging() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+
+def resolve_correlation_id(header_value: str | None) -> str:
+    if header_value is not None:
+        correlation_id = header_value.strip()
+        if correlation_id:
+            return correlation_id[:128]
+    return str(uuid4())
 
 
 def build_log_payload(

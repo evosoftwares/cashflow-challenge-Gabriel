@@ -33,6 +33,7 @@ def apply_transaction_created_event(db: Session, event: dict[str, str]) -> str:
             metric_labels={"status": "duplicate"},
             event_id=str(event_id),
             transaction_id=str(transaction_id),
+            correlation_id=event.get("correlation_id"),
             status="duplicate",
         )
         return "duplicate"
@@ -55,6 +56,7 @@ def apply_transaction_created_event(db: Session, event: dict[str, str]) -> str:
         metric_labels={"status": "success"},
         event_id=str(event_id),
         transaction_id=str(transaction_id),
+        correlation_id=event.get("correlation_id"),
         status="success",
     )
     return "success"

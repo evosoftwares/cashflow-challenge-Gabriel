@@ -439,11 +439,34 @@ Implementado:
 
 - `/health`.
 - `/metrics` em formato texto compatível com Prometheus.
+- `X-Correlation-ID` para rastrear uma requisição da API até Outbox, RabbitMQ e worker.
 - Logs estruturados em JSON com `timestamp`, `log_schema_version`, `event`, `component` e `metric`.
 - Contadores de requisições HTTP por método, rota e status.
 - Contadores de lançamentos criados por tipo.
 - Contadores de publicação via Outbox.
 - Contadores de consolidação, duplicidade, ACK e falhas do worker.
+
+Exemplo de investigação:
+
+```bash
+curl -i -X POST http://localhost:8000/transactions \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: local-dev-key" \
+  -H "X-Correlation-ID: 8c0a1e6d-19cb-4c84-8548-ec0570d95d2b" \
+  -d '{
+    "merchant_id": "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11",
+    "type": "CREDIT",
+    "amount": 100.00,
+    "description": "Venda rastreavel",
+    "occurred_at": "2026-05-20T10:00:00"
+  }'
+```
+
+Depois:
+
+```bash
+docker compose logs api worker outbox-dispatcher | grep "8c0a1e6d-19cb-4c84-8548-ec0570d95d2b"
+```
 
 Evoluções recomendadas:
 

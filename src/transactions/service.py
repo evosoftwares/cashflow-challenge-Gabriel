@@ -19,7 +19,7 @@ def money(value: Decimal) -> Decimal:
     return Decimal(value).quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP)
 
 
-def create_transaction(db: Session, payload: TransactionCreate) -> Transaction:
+def create_transaction(db: Session, payload: TransactionCreate, *, correlation_id: str | None = None) -> Transaction:
     repository = TransactionRepository(db)
     if payload.client_request_id is not None:
         existing_transaction = repository.get_by_client_request_id(payload.client_request_id)
@@ -37,7 +37,7 @@ def create_transaction(db: Session, payload: TransactionCreate) -> Transaction:
     )
 
     saved = repository.add(transaction)
-    event = build_transaction_created_event(saved)
+    event = build_transaction_created_event(saved, correlation_id=correlation_id)
     OutboxRepository(db).add_pending(event)
     try:
         db.commit()
@@ -60,12 +60,13 @@ def create_transaction(db: Session, payload: TransactionCreate) -> Transaction:
         merchant_id=str(saved.merchant_id),
         transaction_type=saved.type,
         amount=f"{saved.amount:.2f}",
+        correlation_id=correlation_id,
     )
     return saved
 
 
-def build_transaction_created_event(transaction: Transaction) -> dict[str, str]:
-    return {
+def build_transaction_created_event(transaction: Transaction, *, correlation_id: str | None = None) -> dict[str, str]:
+    event = {
         "event_id": str(uuid4()),
         "event_type": "TRANSACTION_CREATED",
         "transaction_id": str(transaction.id),
@@ -74,3 +75,6 @@ def build_transaction_created_event(transaction: Transaction) -> dict[str, str]:
         "amount": f"{transaction.amount:.2f}",
         "occurred_at": transaction.occurred_at.isoformat(),
     }
+    if correlation_id is not None:
+        event["correlation_id"] = correlation_id
+    return event

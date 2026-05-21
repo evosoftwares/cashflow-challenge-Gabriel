@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 from decimal import Decimal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -75,6 +75,59 @@ def test_post_transactions_creates_record_and_outbox_event(app_context):
         assert rows.status_code == 200
         assert len(rows.json()) == 1
         assert session is not None
+
+
+def test_post_transactions_propagates_correlation_id_to_response_and_outbox(app_context):
+    client, SessionLocal = app_context
+    merchant_id = uuid4()
+    correlation_id = str(uuid4())
+
+    response = client.post(
+        "/transactions",
+        headers={
+            "X-API-Key": "test-key",
+            "X-Correlation-ID": correlation_id,
+        },
+        json={
+            "merchant_id": str(merchant_id),
+            "type": "CREDIT",
+            "amount": "100.00",
+            "description": "Venda rastreavel",
+            "occurred_at": "2026-05-20T10:00:00",
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.headers["X-Correlation-ID"] == correlation_id
+
+    with SessionLocal() as session:
+        outbox_event = session.query(OutboxEvent).one()
+        assert outbox_event.payload["correlation_id"] == correlation_id
+
+
+def test_post_transactions_generates_correlation_id_when_header_is_absent(app_context):
+    client, SessionLocal = app_context
+    merchant_id = uuid4()
+
+    response = client.post(
+        "/transactions",
+        headers={"X-API-Key": "test-key"},
+        json={
+            "merchant_id": str(merchant_id),
+            "type": "CREDIT",
+            "amount": "100.00",
+            "description": "Venda com rastreio gerado",
+            "occurred_at": "2026-05-20T10:00:00",
+        },
+    )
+
+    assert response.status_code == 201
+    generated_correlation_id = response.headers["X-Correlation-ID"]
+    UUID(generated_correlation_id)
+
+    with SessionLocal() as session:
+        outbox_event = session.query(OutboxEvent).one()
+        assert outbox_event.payload["correlation_id"] == generated_correlation_id
 
 
 def test_post_transactions_is_idempotent_by_client_request_id(app_context):

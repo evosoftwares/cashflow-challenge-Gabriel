@@ -23,8 +23,10 @@ class RabbitMQConsumer:
         channel.basic_qos(prefetch_count=10)
 
         def callback(ch, method, properties, body):
+            event = None
             try:
                 event = json.loads(body.decode("utf-8"))
+                correlation_id = event.get("correlation_id") or getattr(properties, "correlation_id", None)
                 status = self.handler(event)
                 record_counter(
                     logger,
@@ -33,6 +35,7 @@ class RabbitMQConsumer:
                     metric_name="cashflow_worker_messages_total",
                     metric_labels={"status": status},
                     event_id=event.get("event_id"),
+                    correlation_id=correlation_id,
                 )
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             except json.JSONDecodeError:
@@ -53,6 +56,9 @@ class RabbitMQConsumer:
                     metric_name="cashflow_worker_messages_total",
                     metric_labels={"status": "failed"},
                     level=logging.ERROR,
+                    event_id=event.get("event_id") if event else None,
+                    correlation_id=(event.get("correlation_id") if event else None)
+                    or getattr(properties, "correlation_id", None),
                     error_type=type(exc).__name__,
                     error_message=str(exc),
                 )

@@ -2,7 +2,7 @@ from collections.abc import Callable
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
 from src.app.config import Settings, require_api_key
@@ -33,8 +33,8 @@ def create_router(settings: Settings, session_factory: Callable[[], Session]) ->
         response_model=TransactionResponse,
         dependencies=[Depends(api_key_dependency)],
     )
-    def post_transaction(payload: TransactionCreate, db: Session = Depends(get_db)):
-        transaction = create_transaction(db, payload)
+    def post_transaction(payload: TransactionCreate, request: Request, db: Session = Depends(get_db)):
+        transaction = create_transaction(db, payload, correlation_id=request.state.correlation_id)
 
         return TransactionResponse(
             id=transaction.id,
