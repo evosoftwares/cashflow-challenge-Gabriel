@@ -96,8 +96,14 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     assert "Portal operacional" in readme_text
     assert "IndexedDB" in readme_text
     assert "Guia de instalação e uso local" in readme_text
+    assert "Windows PowerShell" in readme_text
+    assert "Copy-Item .env.example .env" in readme_text
     user_guide_text = user_guide.read_text()
     assert "docker compose up --build" in user_guide_text
+    assert "Instalacao no Windows" in user_guide_text
+    assert "Docker Desktop" in user_guide_text
+    assert "PowerShell" in user_guide_text
+    assert "Copy-Item .env.example .env" in user_guide_text
     assert "http://localhost:5173" in user_guide_text
     assert "http://localhost:8000/docs" in user_guide_text
     assert "local-dev-key" in user_guide_text

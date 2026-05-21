@@ -101,12 +101,25 @@ Os ADRs estão em `docs/adr/`.
 
 Este é o caminho oficial da entrega. O avaliador precisa apenas de Git e Docker com Docker Compose.
 
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
+cd cashflow-challenge-Gabriel
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+macOS/Linux:
+
 ```bash
 git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
 cd cashflow-challenge-Gabriel
 cp .env.example .env
 docker compose up --build
 ```
+
+No Windows, mantenha o Docker Desktop aberto antes de executar o comando `docker compose up --build`.
 
 O serviço `migrate` executa `alembic upgrade head` automaticamente antes da API, do worker e do dispatcher de Outbox.
 

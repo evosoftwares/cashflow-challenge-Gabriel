@@ -9,7 +9,37 @@ Este guia mostra como um avaliador ou usuario tecnico pode instalar, subir e usa
 
 Nao e necessario instalar Python, Node.js, PostgreSQL ou RabbitMQ na maquina do avaliador para usar o sistema pelo caminho oficial. Esses componentes sobem pelos containers do Docker Compose.
 
-## Instalacao
+## Instalacao no Windows
+
+Este e o caminho recomendado para avaliadores usando Windows 10 ou Windows 11.
+
+1. Instale o Git para Windows.
+2. Instale o Docker Desktop para Windows.
+3. Abra o Docker Desktop e aguarde o status indicar que o Docker esta em execucao.
+4. Abra o PowerShell.
+5. Execute:
+
+```powershell
+git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
+cd cashflow-challenge-Gabriel
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+Quando os containers terminarem de subir, acesse no navegador:
+
+```text
+http://localhost:5173
+```
+
+Observacoes para Windows:
+
+- O Docker Desktop deve estar aberto antes de rodar `docker compose up --build`.
+- Se o Docker pedir WSL 2 durante a instalacao, aceite a configuracao recomendada pelo instalador.
+- Se o PowerShell disser que `docker` nao existe, feche e abra o PowerShell novamente depois de iniciar o Docker Desktop.
+- Se alguma porta estiver ocupada, veja a secao "Solucao de problemas".
+
+## Instalacao no macOS ou Linux
 
 ```bash
 git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
@@ -111,4 +141,3 @@ Se quiser recomecar do zero:
 docker compose down -v
 docker compose up --build
 ```
-
