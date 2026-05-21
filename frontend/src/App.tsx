@@ -26,6 +26,9 @@ import {
 
 const defaultApiKey = import.meta.env.VITE_DEFAULT_API_KEY ?? "local-dev-key";
 const defaultMerchantId = "8dbfb836-7e2c-44b8-9a3b-f5c8c2c8dd11";
+const queuedSyncRetryDelayMs = 5_000;
+const dailyBalanceRetryAttempts = 5;
+const dailyBalanceRetryDelayMs = 1_000;
 
 function todayDate() {
   return new Date().toISOString().slice(0, 10);
@@ -60,6 +63,10 @@ function shouldQueueForLater(error: unknown) {
 
 function queueLabel(count: number) {
   return count === 1 ? "1 movimentação pendente" : `${count} movimentações pendentes`;
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 function areQueuedTransactionsEqual(first: QueuedTransaction[], second: QueuedTransaction[]) {
@@ -112,6 +119,7 @@ export default function App() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "warning" | "error" | "info"; text: string } | null>(null);
   const syncInProgressRef = useRef(false);
+  const syncRetryTimerRef = useRef<number | null>(null);
 
   const hasProtectedContext = useMemo(
     () => isValidUuid(merchantId) && operationDate.trim().length > 0,
@@ -210,6 +218,7 @@ export default function App() {
   useEffect(() => {
     function handleOnline() {
       setIsOnline(true);
+      clearSyncRetryTimer();
       void syncQueuedTransactions();
     }
 
@@ -226,6 +235,27 @@ export default function App() {
       window.removeEventListener("offline", handleOffline);
     };
   });
+
+  useEffect(() => {
+    return () => clearSyncRetryTimer();
+  }, []);
+
+  function clearSyncRetryTimer() {
+    if (syncRetryTimerRef.current === null) return;
+    window.clearTimeout(syncRetryTimerRef.current);
+    syncRetryTimerRef.current = null;
+  }
+
+  function scheduleQueuedTransactionRetry() {
+    if (!navigator.onLine || syncRetryTimerRef.current !== null) return;
+
+    syncRetryTimerRef.current = window.setTimeout(() => {
+      syncRetryTimerRef.current = null;
+      if (navigator.onLine) {
+        void syncQueuedTransactions();
+      }
+    }, queuedSyncRetryDelayMs);
+  }
 
   async function refreshTransactions(options: { clearMessage?: boolean } = {}) {
     if (!hasProtectedContext) return;
@@ -255,6 +285,8 @@ export default function App() {
       tone: "warning",
       text: "Movimentação salva offline. Ela será enviada quando a conexão voltar.",
     });
+    setSyncState(navigator.onLine ? "failed" : "offline");
+    scheduleQueuedTransactionRetry();
   }
 
   async function syncQueuedTransactions() {
@@ -293,12 +325,16 @@ export default function App() {
           await reloadQueuedTransactions();
           setSyncState("failed");
           setMessage({ tone: "error", text: "Falha ao sincronizar movimentações pendentes." });
+          if (shouldQueueForLater(error)) {
+            scheduleQueuedTransactionRetry();
+          }
           return;
         }
       }
 
       if (hasProtectedContext) {
-        await Promise.all([refreshTransactions({ clearMessage: false }), refreshDailyBalance()]);
+        await refreshTransactions({ clearMessage: false });
+        void refreshDailyBalance({ retryPending: true });
       }
       setSyncState(navigator.onLine ? "online" : "offline");
       setMessage({ tone: "success", text: "Sincronização concluída." });
@@ -307,22 +343,31 @@ export default function App() {
     }
   }
 
-  async function refreshDailyBalance() {
+  async function refreshDailyBalance(options: { retryPending?: boolean } = {}) {
     if (!hasProtectedContext) return;
     setBalanceState("loading");
     setMessage(null);
-    try {
-      const balance = await getDailyBalance(defaultApiKey, merchantId.trim(), operationDate);
-      setDailyBalance(balance);
-      setBalanceState("available");
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 404) {
-        setDailyBalance(null);
-        setBalanceState("pending");
+
+    for (let attempt = 1; attempt <= dailyBalanceRetryAttempts; attempt += 1) {
+      try {
+        const balance = await getDailyBalance(defaultApiKey, merchantId.trim(), operationDate);
+        setDailyBalance(balance);
+        setBalanceState("available");
+        return;
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          if (options.retryPending && attempt < dailyBalanceRetryAttempts) {
+            await wait(dailyBalanceRetryDelayMs);
+            continue;
+          }
+          setDailyBalance(null);
+          setBalanceState("pending");
+          return;
+        }
+        setBalanceState("error");
+        setMessage({ tone: "error", text: errorMessage(error) });
         return;
       }
-      setBalanceState("error");
-      setMessage({ tone: "error", text: errorMessage(error) });
     }
   }
 

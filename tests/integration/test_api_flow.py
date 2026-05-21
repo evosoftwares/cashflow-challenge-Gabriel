@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 from decimal import Decimal
 from uuid import uuid4
@@ -103,6 +104,62 @@ def test_post_transactions_is_idempotent_by_client_request_id(app_context):
     assert first_response.status_code == 201
     assert second_response.status_code == 201
     assert second_response.json()["id"] == first_response.json()["id"]
+
+    with SessionLocal() as session:
+        rows = client.get(
+            f"/transactions?merchant_id={merchant_id}&date=2026-05-20",
+            headers={"X-API-Key": "test-key"},
+        )
+        assert len(rows.json()) == 1
+        assert session.query(OutboxEvent).count() == 1
+
+
+def test_post_transactions_is_idempotent_under_concurrent_client_request_id(tmp_path):
+    database_path = tmp_path / "concurrent-idempotency.db"
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    engine = create_engine(
+        database_url,
+        connect_args={"check_same_thread": False},
+        future=True,
+    )
+    Base.metadata.create_all(engine)
+    SessionLocal = sessionmaker(bind=engine, expire_on_commit=False, future=True)
+    settings = Settings(
+        database_url=database_url,
+        rabbitmq_url="amqp://guest:guest@localhost:5672/",
+        api_key="test-key",
+        queue_name="transaction.created",
+    )
+    client = TestClient(
+        create_app(settings=settings, session_factory=SessionLocal),
+        raise_server_exceptions=False,
+    )
+    merchant_id = uuid4()
+    client_request_id = uuid4()
+    payload = {
+        "merchant_id": str(merchant_id),
+        "client_request_id": str(client_request_id),
+        "type": "CREDIT",
+        "amount": "100.00",
+        "description": "Venda offline reenviada em concorrencia",
+        "occurred_at": "2026-05-20T10:00:00",
+    }
+
+    def post_transaction():
+        return client.post(
+            "/transactions",
+            headers={"X-API-Key": "test-key"},
+            json=payload,
+        )
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        responses = [
+            future.result()
+            for future in as_completed([executor.submit(post_transaction) for _ in range(20)])
+        ]
+
+    assert {response.status_code for response in responses} == {201}
+    assert len({response.json()["id"] for response in responses}) == 1
 
     with SessionLocal() as session:
         rows = client.get(

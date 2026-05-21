@@ -100,6 +100,7 @@ describe("Cash Flow operational portal", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   test("renders the branded operational shell ready for a nontechnical operator", async () => {
@@ -221,6 +222,88 @@ describe("Cash Flow operational portal", () => {
     expect(screen.getByText("Venda offline")).toBeInTheDocument();
     expect(screen.getByText("Pendente")).toBeInTheDocument();
   });
+
+  test("retries queued transactions automatically after a transient API failure", async () => {
+    let postAttempts = 0;
+    let balanceAttempts = 0;
+    const fetchMock = mockFetch((input, init) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return healthResponse();
+      if (url.endsWith("/transactions") && init?.method === "POST") {
+        postAttempts += 1;
+        if (postAttempts === 1) {
+          throw new TypeError("Failed to fetch");
+        }
+        return jsonResponse(201, {
+          id: "a55149c4-781d-4fbb-8d52-ae852c3ad872",
+          merchant_id: demoMerchantId,
+          type: "CREDIT",
+          amount: "42.00",
+          status: "CREATED",
+        });
+      }
+      if (url.includes("/transactions?")) {
+        return jsonResponse(
+          200,
+          postAttempts >= 2
+            ? [
+                transactionItem({
+                  id: "a55149c4-781d-4fbb-8d52-ae852c3ad872",
+                  amount: "42.00",
+                  description: "Venda offline",
+                  occurred_at: "2026-05-20T10:00:00",
+                  created_at: "2026-05-20T10:01:00",
+                }),
+              ]
+            : [],
+        );
+      }
+      if (url.includes("/daily-balances/") && url.includes("/stream")) {
+        return streamResponse(['event: daily_balance\ndata: {"status":"pending"}\n\n']);
+      }
+      if (url.includes("/daily-balances/")) {
+        balanceAttempts += 1;
+        if (postAttempts >= 2 && balanceAttempts >= 2) {
+          return jsonResponse(200, {
+            merchant_id: demoMerchantId,
+            date: "2026-05-20",
+            total_credit: "42.00",
+            total_debit: "0.00",
+            balance: "42.00",
+          });
+        }
+        return jsonResponse(404, { detail: "Daily balance not found" });
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+    await fillOperationContext(user);
+    await user.type(screen.getByLabelText("Valor"), "42.00");
+    await user.type(screen.getByLabelText("Descrição simples"), "Venda offline");
+    await user.clear(screen.getByLabelText("Quando aconteceu"));
+    await user.type(screen.getByLabelText("Quando aconteceu"), "2026-05-20T10:00");
+    await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
+
+    expect(await screen.findByText("1 movimentação pendente")).toBeInTheDocument();
+    expect(screen.getByText("Falha ao sincronizar")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(postAttempts).toBe(2);
+    }, { timeout: 7_000 });
+    await waitFor(() => {
+      expect(screen.getByText("Sem pendências offline")).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByText("R$ 42,00")).toBeInTheDocument();
+    }, { timeout: 7_000 });
+    expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8000/transactions",
+      expect.objectContaining({ method: "POST" }),
+    );
+  }, 12_000);
 
   test("synchronizes queued transactions automatically when the browser comes back online", async () => {
     let postAttempts = 0;

@@ -2,6 +2,7 @@ import logging
 from decimal import Decimal, ROUND_HALF_UP
 from uuid import uuid4
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.app.observability import record_counter
@@ -38,7 +39,15 @@ def create_transaction(db: Session, payload: TransactionCreate) -> Transaction:
     saved = repository.add(transaction)
     event = build_transaction_created_event(saved)
     OutboxRepository(db).add_pending(event)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if payload.client_request_id is not None:
+            existing_transaction = repository.get_by_client_request_id(payload.client_request_id)
+            if existing_transaction is not None:
+                return existing_transaction
+        raise
     db.refresh(saved)
 
     record_counter(
