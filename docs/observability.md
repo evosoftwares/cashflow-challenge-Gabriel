@@ -1,5 +1,7 @@
 # Observabilidade
 
+Este documento descreve o contrato técnico de logs e métricas. Para um passo a passo operacional de investigação, consulte `docs/observability-tutorial.md`.
+
 ## Implementado
 
 - Endpoint `/health`.

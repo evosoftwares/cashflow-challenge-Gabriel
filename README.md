@@ -85,6 +85,7 @@ Os ADRs estão em `docs/adr/`.
 - Justificativa tecnológica: `docs/adr/`.
 - Segurança: `docs/security.md`.
 - Observabilidade: `docs/observability.md`.
+- Tutorial de observabilidade: `docs/observability-tutorial.md`.
 - Custos: `docs/costs.md`.
 - Escalabilidade e plano de crescimento: `docs/scalability.md`.
 - Evoluções com IA: `docs/ai-evolutions.md`.
