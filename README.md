@@ -91,12 +91,15 @@ Os ADRs estão em `docs/adr/`.
 - Prontidão final para avaliação local: `docs/production-readiness.md`.
 - Checklist de aderência ao desafio: `docs/compliance-checklist.md`.
 - Evidências de verificação: `docs/verification.md`.
+- Guia de instalação e uso local: `docs/user-guide.md`.
 - Histórico da sessão de desenvolvimento: `docs/development-session-2026-05-20.md`.
 - Migração versionada com Alembic: `src/database/alembic/versions/`.
 - Testes unitários, integração leve e carga.
 - CI no GitHub Actions para testes de backend, frontend, build e validação do Docker Compose.
 
 ## Como rodar localmente
+
+Este é o caminho oficial da entrega. O avaliador precisa apenas de Git e Docker com Docker Compose.
 
 ```bash
 git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
@@ -117,6 +120,17 @@ RabbitMQ Management: http://localhost:15672
 ```
 
 O portal usa a chave local configurada por variável de ambiente para consumir a API sem expor esse campo ao operador.
+
+Guia passo a passo de instalação e uso: `docs/user-guide.md`.
+
+## Como utilizar o portal
+
+1. Abra `http://localhost:5173`.
+2. Use o merchant de demonstração já preenchido ou gere um novo identificador.
+3. Escolha a data de operação.
+4. Registre uma entrada ou saída.
+5. Acompanhe a tabela de movimentações do dia.
+6. Veja o resumo diário atualizar automaticamente.
 
 ## Fluxo online/offline do portal
 
