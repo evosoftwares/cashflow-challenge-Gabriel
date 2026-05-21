@@ -97,6 +97,35 @@ Esse script instala Docker, Docker Compose plugin, Git e configura firewall com 
 
 ## Deploy
 
+### Caminho rapido em qualquer VPS Ubuntu/Debian
+
+Em uma VPS com IP publico, SSH funcionando e portas `80`/`443` liberadas no firewall do provedor:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/evosoftwares/cashflow-challenge-Gabriel/main/scripts/bootstrap-cloud.sh | sudo bash
+```
+
+O script:
+
+1. instala Docker e Docker Compose;
+2. clona ou atualiza o repositorio em `/opt/cashflow`;
+3. gera `.env.production` com senhas aleatorias;
+4. configura o acesso por IP publico quando nenhum dominio e informado;
+5. sobe `docker-compose.prod.yml`;
+6. imprime o link do portal.
+
+Para dominio proprio:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/evosoftwares/cashflow-challenge-Gabriel/main/scripts/bootstrap-cloud.sh | sudo bash -s caixa.seudominio.com
+```
+
+Antes de usar dominio, o DNS deve apontar para o IP publico da VM. Com dominio valido, Caddy tenta emitir HTTPS automaticamente.
+
+Limite: o script prepara o servidor, mas nao cria a VM nem a conta no provedor. A VM precisa existir antes.
+
+### Caminho manual
+
 Do computador local:
 
 ```bash
