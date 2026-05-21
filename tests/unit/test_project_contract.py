@@ -128,8 +128,67 @@ def test_final_delivery_artifacts_are_production_ready():
     assert dockerignore.is_file()
     assert ".venv/" in dockerignore.read_text()
     assert "frontend/node_modules/" in dockerignore.read_text()
-    assert "17 passed" in verification
+    assert "19 passed" in verification
     assert "8 passed" not in verification
     assert "client_request_id" in verification
     assert "foi implementada como uma operação atômica" in scalability
     assert "deve evoluir para uma operação atômica" not in scalability
+
+
+def test_free_vps_cloud_deployment_artifacts_are_versioned():
+    compose_prod = Path("docker-compose.prod.yml")
+    caddyfile = Path("deploy/Caddyfile")
+    production_env = Path(".env.production.example")
+    cloud_docs = Path("docs/cloud-deployment.md")
+    frontend_dockerfile = Path("frontend/Dockerfile")
+    frontend_nginx = Path("frontend/nginx.conf")
+    web_manifest = Path("frontend/public/manifest.webmanifest")
+    service_worker = Path("frontend/public/sw.js")
+    deploy_script = Path("scripts/deploy-vps.sh")
+
+    for artifact in [
+        compose_prod,
+        caddyfile,
+        production_env,
+        cloud_docs,
+        frontend_dockerfile,
+        frontend_nginx,
+        web_manifest,
+        service_worker,
+        deploy_script,
+    ]:
+        assert artifact.is_file(), artifact
+
+    compose_text = compose_prod.read_text()
+    assert "caddy:" in compose_text
+    assert "postgres:" in compose_text
+    assert "rabbitmq:" in compose_text
+    assert "outbox-dispatcher:" in compose_text
+    assert "ports:" not in compose_text.split("postgres:", 1)[1].split("rabbitmq:", 1)[0]
+    assert "ports:" not in compose_text.split("rabbitmq:", 1)[1].split("volumes:", 1)[0]
+
+    caddy_text = caddyfile.read_text()
+    assert "handle_path /api/*" in caddy_text
+    assert "reverse_proxy api:8000" in caddy_text
+    assert "reverse_proxy frontend:80" in caddy_text
+
+    env_text = production_env.read_text()
+    assert "APP_DOMAIN=" in env_text
+    assert "API_KEY=" in env_text
+    assert "POSTGRES_PASSWORD=" in env_text
+    assert "RABBITMQ_DEFAULT_PASS=" in env_text
+    assert "local-dev-key" not in env_text
+    assert ".env.production" in Path(".gitignore").read_text()
+    assert ".env.production" in Path(".dockerignore").read_text()
+
+    manifest_text = web_manifest.read_text()
+    assert "Mercado do Bairro Fluxo de Caixa" in manifest_text
+    assert '"start_url": "/"' in manifest_text
+    assert '"display": "standalone"' in manifest_text
+
+    service_worker_text = service_worker.read_text()
+    assert "CACHE_NAME" in service_worker_text
+    assert "cacheAppShell" in service_worker_text
+    assert "assets" in service_worker_text
+    assert "event.request.mode === \"navigate\"" in service_worker_text
+    assert "!url.pathname.startsWith(\"/api/\")" in service_worker_text

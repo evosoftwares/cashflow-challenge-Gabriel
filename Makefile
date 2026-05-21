@@ -1,4 +1,4 @@
-.PHONY: up down migrate test docker-e2e load-test overload-read overload-worker frontend-install frontend-test frontend-build frontend-dev logs stop-worker start-worker
+.PHONY: up down migrate test docker-e2e load-test overload-read overload-worker frontend-install frontend-test frontend-build frontend-dev prod-config prod-build prod-up prod-down logs stop-worker start-worker
 
 up:
 	docker compose up --build
@@ -35,6 +35,18 @@ frontend-build:
 
 frontend-dev:
 	npm --prefix frontend run dev -- --host 0.0.0.0
+
+prod-config:
+	docker compose --env-file .env.production -f docker-compose.prod.yml config --quiet
+
+prod-build:
+	docker compose --env-file .env.production -f docker-compose.prod.yml build
+
+prod-up:
+	docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+
+prod-down:
+	docker compose --env-file .env.production -f docker-compose.prod.yml down
 
 logs:
 	docker compose logs -f

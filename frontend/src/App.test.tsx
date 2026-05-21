@@ -578,7 +578,13 @@ describe("Cash Flow operational portal", () => {
 
     render(<App />);
     const table = await screen.findByRole("table", { name: "Movimentações financeiras" });
-    const firstTransactionCells = within(table).getAllByRole("row")[1].querySelectorAll("td");
+    expect(await within(table).findByText("Compra de estoque")).toBeInTheDocument();
+
+    const firstTransactionRow = within(table)
+      .getAllByRole("row")
+      .find((row) => row.textContent?.includes("Compra de estoque"));
+    expect(firstTransactionRow).toBeDefined();
+    const firstTransactionCells = firstTransactionRow?.querySelectorAll("td") ?? [];
 
     expect(Array.from(firstTransactionCells).map((cell) => cell.getAttribute("data-label"))).toEqual([
       "Tipo",

@@ -6,7 +6,7 @@ Este documento consolida os ajustes finais para entrega do desafio como uma solu
 
 A entrega oficial e executavel localmente via Docker Compose. Ela sobe API, portal operacional, PostgreSQL, RabbitMQ, worker de consolidacao, Outbox Dispatcher e migration Alembic.
 
-Nao foi feito deploy em cloud porque o enunciado nao define provedor, conta, regiao, dominio, SLA ou politica de custos. Para um ambiente produtivo real, a mesma arquitetura pode ser implantada em uma plataforma gerenciada com variaveis de ambiente seguras e servicos gerenciados de PostgreSQL e RabbitMQ.
+Tambem foi preparado um caminho de deploy em VPS/VM com Docker Compose, documentado em `docs/cloud-deployment.md`. O alvo recomendado para buscar gratuidade e Oracle Cloud Always Free ARM, mantendo todos os servicos no mesmo host.
 
 ## Itens implementados
 
@@ -24,6 +24,9 @@ Nao foi feito deploy em cloud porque o enunciado nao define provedor, conta, reg
 - Endpoint `/metrics` com contadores locais.
 - Testes unitarios, integracao, Docker E2E, carga e overload.
 - CI no GitHub Actions para backend, frontend e validacao do Docker Compose.
+- Compose de producao para VPS em `docker-compose.prod.yml`.
+- Proxy Caddy com roteamento `/api` e HTTPS automatico quando houver dominio.
+- Portal em modo PWA com cache do app shell e fila offline em IndexedDB.
 
 ## Checklist operacional
 
@@ -54,6 +57,18 @@ Para transformar esta entrega em operacao produtiva, os proximos passos seriam:
 - Configurar alertas para fila acumulada, falha de worker e atraso de consolidacao.
 - Adicionar Dead Letter Queue e retry exponencial com limite.
 - Definir runbook de incidente para atraso no consolidado.
+
+## Caminho gratuito
+
+O caminho gratuito recomendado roda em uma unica VM Always Free. Essa opcao e suficiente para demonstracao, avaliacao e operacao pequena, mas nao substitui alta disponibilidade real.
+
+Limites aceitos nesse caminho:
+
+- banco, broker e aplicacao compartilham o mesmo host;
+- a VM segue os limites e disponibilidade do provedor gratuito;
+- sem dominio, o acesso por IP usa HTTP;
+- com dominio apontando para a VM, Caddy pode emitir HTTPS automaticamente;
+- backup externo precisa ser configurado para proteger contra perda da VM.
 
 ## Criterio arquitetural
 
