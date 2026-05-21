@@ -51,6 +51,8 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     docker_e2e = Path("tests/integration/docker_e2e.sh")
     overload_docs = Path("docs/overload-tests.md")
     user_guide = Path("docs/user-guide.md")
+    start_sh = Path("start.sh")
+    start_ps1 = Path("start.ps1")
     frontend_package = Path("frontend/package.json")
     frontend_app = Path("frontend/src/App.tsx")
     offline_queue = Path("frontend/src/offlineQueue.ts")
@@ -60,6 +62,8 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     assert docker_e2e.is_file()
     assert overload_docs.is_file()
     assert user_guide.is_file()
+    assert start_sh.is_file()
+    assert start_ps1.is_file()
     assert frontend_package.is_file()
     assert frontend_app.is_file()
     assert offline_queue.is_file()
@@ -97,16 +101,30 @@ def test_compliance_and_docker_e2e_artifacts_are_versioned():
     assert "IndexedDB" in readme_text
     assert "Guia de instalação e uso local" in readme_text
     assert "Windows PowerShell" in readme_text
+    assert ".\\start.ps1" in readme_text
+    assert "./start.sh" in readme_text
     assert "Copy-Item .env.example .env" in readme_text
     user_guide_text = user_guide.read_text()
     assert "docker compose up --build" in user_guide_text
     assert "Instalacao no Windows" in user_guide_text
     assert "Docker Desktop" in user_guide_text
     assert "PowerShell" in user_guide_text
+    assert ".\\start.ps1" in user_guide_text
+    assert "./start.sh" in user_guide_text
     assert "Copy-Item .env.example .env" in user_guide_text
     assert "http://localhost:5173" in user_guide_text
     assert "http://localhost:8000/docs" in user_guide_text
     assert "local-dev-key" in user_guide_text
+
+    start_sh_text = start_sh.read_text()
+    assert "docker info" in start_sh_text
+    assert "cp .env.example .env" in start_sh_text
+    assert "docker compose up --build" in start_sh_text
+
+    start_ps1_text = start_ps1.read_text()
+    assert "docker info" in start_ps1_text
+    assert 'Copy-Item ".env.example" ".env"' in start_ps1_text
+    assert "docker compose up --build" in start_ps1_text
 
 
 def test_overload_worker_script_restarts_worker_on_failure():

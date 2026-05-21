@@ -22,6 +22,14 @@ Este e o caminho recomendado para avaliadores usando Windows 10 ou Windows 11.
 ```powershell
 git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
 cd cashflow-challenge-Gabriel
+.\start.ps1
+```
+
+O script cria `.env` automaticamente quando necessario, verifica se o Docker esta rodando e sobe o sistema com Docker Compose.
+
+Se preferir executar manualmente:
+
+```powershell
 Copy-Item .env.example .env
 docker compose up --build
 ```
@@ -44,6 +52,12 @@ Observacoes para Windows:
 ```bash
 git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
 cd cashflow-challenge-Gabriel
+./start.sh
+```
+
+Se preferir executar manualmente:
+
+```bash
 cp .env.example .env
 docker compose up --build
 ```

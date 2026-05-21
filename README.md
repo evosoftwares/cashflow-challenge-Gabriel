@@ -101,13 +101,14 @@ Os ADRs estão em `docs/adr/`.
 
 Este é o caminho oficial da entrega. O avaliador precisa apenas de Git e Docker com Docker Compose.
 
+### Caminho mais fácil
+
 Windows PowerShell:
 
 ```powershell
 git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
 cd cashflow-challenge-Gabriel
-Copy-Item .env.example .env
-docker compose up --build
+.\start.ps1
 ```
 
 macOS/Linux:
@@ -115,6 +116,23 @@ macOS/Linux:
 ```bash
 git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
 cd cashflow-challenge-Gabriel
+./start.sh
+```
+
+Os scripts criam `.env` automaticamente quando necessário, verificam se o Docker está rodando e exibem as URLs locais.
+
+### Caminho manual
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+macOS/Linux:
+
+```bash
 cp .env.example .env
 docker compose up --build
 ```
