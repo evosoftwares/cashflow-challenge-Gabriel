@@ -87,6 +87,7 @@ Os ADRs estão em `docs/adr/`.
 - Observabilidade: `docs/observability.md`.
 - Custos: `docs/costs.md`.
 - Escalabilidade e plano de crescimento: `docs/scalability.md`.
+- Evoluções com IA: `docs/ai-evolutions.md`.
 - Arquitetura de transição: `docs/transition-architecture.md`.
 - Prontidão final para avaliação local: `docs/production-readiness.md`.
 - Checklist de aderência ao desafio: `docs/compliance-checklist.md`.
@@ -462,3 +463,11 @@ Evoluções recomendadas:
 - Métricas Prometheus/Grafana.
 - Cache Redis caso a consulta de consolidado exija baixa latência sob volume maior.
 - Extração futura dos módulos para microsserviços se os domínios crescerem de forma independente.
+
+## Evoluções com IA
+
+O desafio não exige inteligência artificial no escopo obrigatório. Por isso, a solução mantém o fluxo financeiro determinístico, auditável e resiliente.
+
+Como evolução futura, a base de lançamentos e consolidados pode alimentar capacidades de IA, como previsão de fluxo de caixa, detecção de anomalias, classificação automática de lançamentos e assistente operacional para consultas financeiras.
+
+Essas possibilidades estão documentadas em `docs/ai-evolutions.md` como evolução analítica e assíncrona, sem colocar IA no caminho crítico de gravação ou consolidação.
