@@ -145,7 +145,6 @@ def test_free_vps_cloud_deployment_artifacts_are_versioned():
     web_manifest = Path("frontend/public/manifest.webmanifest")
     service_worker = Path("frontend/public/sw.js")
     deploy_script = Path("scripts/deploy-vps.sh")
-    bootstrap_script = Path("scripts/bootstrap-cloud.sh")
 
     for artifact in [
         compose_prod,
@@ -157,7 +156,6 @@ def test_free_vps_cloud_deployment_artifacts_are_versioned():
         web_manifest,
         service_worker,
         deploy_script,
-        bootstrap_script,
     ]:
         assert artifact.is_file(), artifact
 
@@ -194,9 +192,3 @@ def test_free_vps_cloud_deployment_artifacts_are_versioned():
     assert "assets" in service_worker_text
     assert "event.request.mode === \"navigate\"" in service_worker_text
     assert "!url.pathname.startsWith(\"/api/\")" in service_worker_text
-
-    bootstrap_text = bootstrap_script.read_text()
-    assert "docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build" in bootstrap_text
-    assert "openssl rand -hex 32" in bootstrap_text
-    assert "https://github.com/evosoftwares/cashflow-challenge-Gabriel.git" in bootstrap_text
-    assert "local-dev-key" not in bootstrap_text

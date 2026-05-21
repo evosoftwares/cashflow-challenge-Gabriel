@@ -122,20 +122,6 @@ O portal usa a chave local configurada por variável de ambiente para consumir a
 
 O caminho recomendado para buscar gratuidade é uma VM Oracle Cloud Always Free ARM rodando Docker Compose. Esse caminho preserva a arquitetura completa em um único host: Caddy, portal, API, PostgreSQL, RabbitMQ, worker, Outbox Dispatcher e migrations.
 
-Em qualquer VPS Ubuntu/Debian com IP público e portas `80`/`443` liberadas, o caminho mais direto é executar o bootstrap:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/evosoftwares/cashflow-challenge-Gabriel/main/scripts/bootstrap-cloud.sh | sudo bash
-```
-
-Para usar domínio próprio:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/evosoftwares/cashflow-challenge-Gabriel/main/scripts/bootstrap-cloud.sh | sudo bash -s caixa.seudominio.com
-```
-
-Ao final, o script imprime o link do portal e mantém os segredos em `/opt/cashflow/.env.production`.
-
 Arquivos principais:
 
 ```text
@@ -147,7 +133,6 @@ frontend/public/manifest.webmanifest
 frontend/public/sw.js
 scripts/provision-ubuntu-docker.sh
 scripts/deploy-vps.sh
-scripts/bootstrap-cloud.sh
 ```
 
 Fluxo resumido:
