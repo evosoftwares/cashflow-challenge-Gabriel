@@ -101,6 +101,8 @@ Os ADRs estão em `docs/adr/`.
 
 Este é o caminho oficial da entrega. O avaliador precisa apenas de Git e Docker com Docker Compose.
 
+Guia direto para baixar e usar: `INSTALL.md`.
+
 ### Caminho mais fácil
 
 Windows PowerShell:
@@ -108,6 +110,12 @@ Windows PowerShell:
 ```powershell
 git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
 cd cashflow-challenge-Gabriel
+.\start.bat
+```
+
+Também é possível chamar o PowerShell diretamente:
+
+```powershell
 .\start.ps1
 ```
 
@@ -120,6 +128,8 @@ cd cashflow-challenge-Gabriel
 ```
 
 Os scripts criam `.env` automaticamente quando necessário, verificam se o Docker está rodando e exibem as URLs locais.
+
+Para quem não usa Git, também é possível baixar o ZIP pelo botão `Code > Download ZIP` no GitHub, extrair a pasta e executar `start.bat` no Windows ou `./start.sh` no macOS/Linux.
 
 ### Caminho manual
 

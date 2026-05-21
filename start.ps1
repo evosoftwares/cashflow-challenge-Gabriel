@@ -1,12 +1,14 @@
 $ErrorActionPreference = "Stop"
 
+Set-Location -Path $PSScriptRoot
+
 function Test-CommandExists {
     param([string]$Command)
     $null -ne (Get-Command $Command -ErrorAction SilentlyContinue)
 }
 
 if (-not (Test-CommandExists "docker")) {
-    Write-Host "Docker was not found. Install Docker Desktop for Windows and try again." -ForegroundColor Red
+    Write-Host "Docker nao foi encontrado. Instale o Docker Desktop para Windows e tente novamente." -ForegroundColor Red
     exit 1
 }
 
@@ -14,16 +16,16 @@ try {
     docker info *> $null
 }
 catch {
-    Write-Host "Docker is not running. Start Docker Desktop and try again." -ForegroundColor Red
+    Write-Host "Docker nao esta rodando. Abra o Docker Desktop e tente novamente." -ForegroundColor Red
     exit 1
 }
 
 if (-not (Test-Path ".env")) {
     Copy-Item ".env.example" ".env"
-    Write-Host "Created .env from .env.example."
+    Write-Host "Arquivo .env criado a partir do .env.example."
 }
 
-Write-Host "Starting Cash Flow locally with Docker Compose..."
+Write-Host "Iniciando o Cash Flow localmente com Docker Compose..."
 Write-Host ""
 Write-Host "Portal:  http://localhost:5173"
 Write-Host "API:     http://localhost:8000"

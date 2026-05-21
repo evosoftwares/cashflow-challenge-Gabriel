@@ -141,7 +141,7 @@ describe("Cash Flow operational portal", () => {
 
     fireEvent.offline(window);
 
-    expect(screen.getByLabelText("Status offline")).toBeInTheDocument();
+    expect(screen.getByLabelText("Status sem conexão")).toBeInTheDocument();
 
     fireEvent.online(window);
 
@@ -189,7 +189,7 @@ describe("Cash Flow operational portal", () => {
     await user.type(screen.getByLabelText("Quando aconteceu"), "2026-05-20T10:00");
     await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
 
-    expect(await screen.findByText("Movimentação salva com sucesso.")).toBeInTheDocument();
+    expect(await screen.findByText("Movimentação registrada. O resumo do dia será atualizado em instantes.")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8000/transactions",
       expect.objectContaining({ method: "POST" }),
@@ -217,8 +217,12 @@ describe("Cash Flow operational portal", () => {
     await user.type(screen.getByLabelText("Quando aconteceu"), "2026-05-20T10:00");
     await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
 
-    expect(await screen.findByText("Movimentação salva offline. Ela será enviada quando a conexão voltar.")).toBeInTheDocument();
-    expect(screen.getByText("1 movimentação pendente")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "Sem conexão no momento. Guardamos essa movimentação neste dispositivo e vamos enviar automaticamente quando o sistema voltar.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("1 movimentação aguardando envio")).toBeInTheDocument();
     expect(screen.getByText("Venda offline")).toBeInTheDocument();
     expect(screen.getByText("Pendente")).toBeInTheDocument();
   });
@@ -286,14 +290,14 @@ describe("Cash Flow operational portal", () => {
     await user.type(screen.getByLabelText("Quando aconteceu"), "2026-05-20T10:00");
     await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
 
-    expect(await screen.findByText("1 movimentação pendente")).toBeInTheDocument();
-    expect(screen.getByText("Falha ao sincronizar")).toBeInTheDocument();
+    expect(await screen.findByText("1 movimentação aguardando envio")).toBeInTheDocument();
+    expect(screen.getByText("Aguardando envio")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(postAttempts).toBe(2);
     }, { timeout: 7_000 });
     await waitFor(() => {
-      expect(screen.getByText("Sem pendências offline")).toBeInTheDocument();
+      expect(screen.getByText("Tudo enviado")).toBeInTheDocument();
     });
     await waitFor(() => {
       expect(screen.getAllByText("R$ 42,00").length).toBeGreaterThan(0);
@@ -374,7 +378,7 @@ describe("Cash Flow operational portal", () => {
     await user.type(screen.getByLabelText("Quando aconteceu"), "2026-05-20T10:00");
     await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
 
-    expect(await screen.findByText("1 movimentação pendente")).toBeInTheDocument();
+    expect(await screen.findByText("1 movimentação aguardando envio")).toBeInTheDocument();
 
     fireEvent.online(window);
 
@@ -382,7 +386,7 @@ describe("Cash Flow operational portal", () => {
       expect(postAttempts).toBe(2);
     });
     await waitFor(() => {
-      expect(screen.getByText("Sem pendências offline")).toBeInTheDocument();
+      expect(screen.getByText("Tudo enviado")).toBeInTheDocument();
     });
     await waitFor(() => {
       expect(screen.getAllByText("R$ 20,57").length).toBeGreaterThan(0);
@@ -437,7 +441,7 @@ describe("Cash Flow operational portal", () => {
     await user.type(screen.getByLabelText("Quando aconteceu"), "2026-05-20T10:00");
     await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
 
-    expect(await screen.findByText("1 movimentação pendente")).toBeInTheDocument();
+    expect(await screen.findByText("1 movimentação aguardando envio")).toBeInTheDocument();
 
     fireEvent.online(window);
 
@@ -445,10 +449,10 @@ describe("Cash Flow operational portal", () => {
       expect(postAttempts).toBe(2);
     });
     await waitFor(() => {
-      expect(screen.getByText("Sem pendências offline")).toBeInTheDocument();
+      expect(screen.getByText("Tudo enviado")).toBeInTheDocument();
     });
     await waitFor(() => {
-      expect(screen.getByText("Sincronização concluída.")).toBeInTheDocument();
+      expect(screen.getByText("Tudo certo. As movimentações pendentes foram enviadas.")).toBeInTheDocument();
     });
     expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
@@ -490,8 +494,8 @@ describe("Cash Flow operational portal", () => {
     await waitFor(() => {
       expect(postAttempts).toBe(1);
     });
-    expect(await screen.findByText("Sincronização concluída.")).toBeInTheDocument();
-    expect(screen.getByText("Sem pendências offline")).toBeInTheDocument();
+    expect(await screen.findByText("Tudo certo. As movimentações pendentes foram enviadas.")).toBeInTheDocument();
+    expect(screen.getByText("Tudo enviado")).toBeInTheDocument();
   });
 
   test("shows the pending consolidation state from realtime updates", async () => {
@@ -868,7 +872,7 @@ describe("Cash Flow operational portal", () => {
     await user.click(screen.getByRole("button", { name: "Salvar movimentação" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Não foi possível acessar o sistema. Acione o suporte.")).toBeInTheDocument();
+      expect(screen.getByText("Não conseguimos confirmar o acesso deste ambiente. Chame o suporte.")).toBeInTheDocument();
     });
     expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
   });

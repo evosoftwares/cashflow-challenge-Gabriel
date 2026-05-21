@@ -54,7 +54,7 @@ function isValidUuid(value: string) {
 
 function errorMessage(error: unknown) {
   if (error instanceof ApiError) return error.message;
-  return "API indisponível ou erro de rede.";
+  return "Não conseguimos conectar ao sistema agora. Tente novamente em alguns instantes.";
 }
 
 function shouldQueueForLater(error: unknown) {
@@ -62,7 +62,7 @@ function shouldQueueForLater(error: unknown) {
 }
 
 function queueLabel(count: number) {
-  return count === 1 ? "1 movimentação pendente" : `${count} movimentações pendentes`;
+  return count === 1 ? "1 movimentação aguardando envio" : `${count} movimentações aguardando envio`;
 }
 
 function wait(ms: number) {
@@ -90,13 +90,13 @@ function getSyncStatusPresentation(syncState: SyncState, isOnline: boolean): {
   label: string;
 } {
   if (syncState === "syncing") {
-    return { icon: LoaderCircle, iconLabel: "Status sincronizando", label: "Sincronizando" };
+    return { icon: LoaderCircle, iconLabel: "Status enviando", label: "Enviando agora" };
   }
   if (syncState === "failed") {
-    return { icon: TriangleAlert, iconLabel: "Status com falha", label: "Falha ao sincronizar" };
+    return { icon: TriangleAlert, iconLabel: "Status com envio pendente", label: "Aguardando envio" };
   }
   if (syncState === "offline" || !isOnline) {
-    return { icon: WifiOff, iconLabel: "Status offline", label: "Offline" };
+    return { icon: WifiOff, iconLabel: "Status sem conexão", label: "Sem conexão" };
   }
   return { icon: Wifi, iconLabel: "Status online", label: "Online" };
 }
@@ -283,7 +283,7 @@ export default function App() {
     setDescription("");
     setMessage({
       tone: "warning",
-      text: "Movimentação salva offline. Ela será enviada quando a conexão voltar.",
+      text: "Sem conexão no momento. Guardamos essa movimentação neste dispositivo e vamos enviar automaticamente quando o sistema voltar.",
     });
     setSyncState(navigator.onLine ? "failed" : "offline");
     scheduleQueuedTransactionRetry();
@@ -324,7 +324,10 @@ export default function App() {
           await saveQueuedTransaction(failedTransaction);
           await reloadQueuedTransactions();
           setSyncState("failed");
-          setMessage({ tone: "error", text: "Falha ao sincronizar movimentações pendentes." });
+          setMessage({
+            tone: "error",
+            text: "Ainda não conseguimos enviar as movimentações guardadas. Vamos tentar novamente automaticamente.",
+          });
           if (shouldQueueForLater(error)) {
             scheduleQueuedTransactionRetry();
           }
@@ -337,7 +340,7 @@ export default function App() {
         void refreshDailyBalance({ retryPending: true, settleAfterSuccess: true });
       }
       setSyncState(navigator.onLine ? "online" : "offline");
-      setMessage({ tone: "success", text: "Sincronização concluída." });
+      setMessage({ tone: "success", text: "Tudo certo. As movimentações pendentes foram enviadas." });
     } finally {
       syncInProgressRef.current = false;
     }
@@ -400,7 +403,7 @@ export default function App() {
       setDescription("");
       await refreshTransactions();
       void refreshDailyBalance({ retryPending: true, settleAfterSuccess: true });
-      setMessage({ tone: "success", text: "Movimentação salva com sucesso." });
+      setMessage({ tone: "success", text: "Movimentação registrada. O resumo do dia será atualizado em instantes." });
     } catch (error) {
       if (shouldQueueForLater(error)) {
         await queueTransactionForLater(payload);
@@ -471,7 +474,7 @@ export default function App() {
           strokeWidth={2.4}
         />
         <strong>{syncStatusPresentation.label}</strong>
-        <span>{pendingCount > 0 ? queueLabel(pendingCount) : "Sem pendências offline"}</span>
+        <span>{pendingCount > 0 ? queueLabel(pendingCount) : "Tudo enviado"}</span>
         {failedCount > 0 ? (
           <button className="button button--secondary sync-status__action" onClick={syncQueuedTransactions} type="button">
             Tentar enviar agora

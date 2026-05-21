@@ -22,10 +22,25 @@ Este e o caminho recomendado para avaliadores usando Windows 10 ou Windows 11.
 ```powershell
 git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
 cd cashflow-challenge-Gabriel
+.\start.bat
+```
+
+O `start.bat` chama o PowerShell com permissao local para executar o script do projeto. Se preferir chamar o PowerShell diretamente:
+
+```powershell
 .\start.ps1
 ```
 
 O script cria `.env` automaticamente quando necessario, verifica se o Docker esta rodando e sobe o sistema com Docker Compose.
+
+Se nao quiser usar Git, baixe o ZIP pelo GitHub:
+
+1. Acesse `https://github.com/evosoftwares/cashflow-challenge-Gabriel`.
+2. Clique em `Code`.
+3. Clique em `Download ZIP`.
+4. Extraia o arquivo.
+5. Abra o PowerShell dentro da pasta extraida.
+6. Execute `.\start.bat`.
 
 Se preferir executar manualmente:
 
@@ -44,6 +59,7 @@ Observacoes para Windows:
 
 - O Docker Desktop deve estar aberto antes de rodar `docker compose up --build`.
 - Se o Docker pedir WSL 2 durante a instalacao, aceite a configuracao recomendada pelo instalador.
+- Se o PowerShell bloquear scripts, use `.\start.bat`.
 - Se o PowerShell disser que `docker` nao existe, feche e abra o PowerShell novamente depois de iniciar o Docker Desktop.
 - Se alguma porta estiver ocupada, veja a secao "Solucao de problemas".
 
@@ -52,6 +68,13 @@ Observacoes para Windows:
 ```bash
 git clone https://github.com/evosoftwares/cashflow-challenge-Gabriel.git
 cd cashflow-challenge-Gabriel
+./start.sh
+```
+
+Se baixar o ZIP pelo GitHub, extraia a pasta, abra o terminal dentro dela e execute:
+
+```bash
+chmod +x start.sh
 ./start.sh
 ```
 

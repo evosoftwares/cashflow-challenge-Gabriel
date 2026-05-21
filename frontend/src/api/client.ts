@@ -54,17 +54,17 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000
 
 async function parseError(response: Response): Promise<ApiError> {
   if (response.status === 401) {
-    return new ApiError("Não foi possível acessar o sistema. Acione o suporte.", response.status);
+    return new ApiError("Não conseguimos confirmar o acesso deste ambiente. Chame o suporte.", response.status);
   }
   if (response.status === 404) {
-    return new ApiError("Recurso não encontrado.", response.status);
+    return new ApiError("Ainda não encontramos essa informação.", response.status);
   }
 
   try {
     const body = (await response.json()) as { detail?: string };
-    return new ApiError(body.detail ?? "Erro ao comunicar com a API.", response.status);
+    return new ApiError(body.detail ?? "Não conseguimos concluir esta ação agora. Tente novamente em instantes.", response.status);
   } catch {
-    return new ApiError("Erro ao comunicar com a API.", response.status);
+    return new ApiError("Não conseguimos concluir esta ação agora. Tente novamente em instantes.", response.status);
   }
 }
 
@@ -160,7 +160,7 @@ export function subscribeDailyBalance(
         throw await parseError(response);
       }
       if (!response.body) {
-        throw new ApiError("Atualização em tempo real indisponível.", 0);
+        throw new ApiError("Não foi possível acompanhar as atualizações em tempo real agora.", 0);
       }
 
       const reader = response.body.getReader();

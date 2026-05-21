@@ -8,6 +8,13 @@ A entrega oficial e executavel localmente via Docker Compose. Ela sobe API, port
 
 Hospedagem externa nao faz parte do caminho oficial desta entrega. O foco e permitir que o avaliador rode, teste e audite tudo localmente com um unico `docker compose up --build`.
 
+Para facilitar o uso por avaliadores, a raiz do repositorio contem:
+
+- `INSTALL.md` com o passo a passo para baixar por Git ou ZIP.
+- `start.bat` para Windows com chamada PowerShell simplificada.
+- `start.ps1` para Windows PowerShell.
+- `start.sh` para macOS/Linux.
+
 ## Itens implementados
 
 - API FastAPI com healthcheck.
@@ -25,6 +32,7 @@ Hospedagem externa nao faz parte do caminho oficial desta entrega. O foco e perm
 - Testes unitarios, integracao, Docker E2E, carga e overload.
 - CI no GitHub Actions para backend, frontend e validacao do Docker Compose.
 - Portal com fila offline em IndexedDB e app shell cacheavel em build de front-end.
+- Guia de instalacao e atalhos locais para Windows, macOS e Linux.
 
 ## Checklist operacional
 

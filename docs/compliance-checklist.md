@@ -14,7 +14,7 @@ Este checklist mapeia cada requisito do avaliador para evidencia objetiva no rep
 | Justificativa tecnologica | Atendido | `docs/adr/` |
 | Linguagem livre | Atendido | Python e FastAPI |
 | Testes | Atendido | `tests/unit/`, `tests/integration/`, `tests/load/` |
-| README com funcionamento e execucao local | Atendido | `README.md`, `docs/user-guide.md` |
+| README com funcionamento e execucao local | Atendido | `README.md`, `INSTALL.md`, `docs/user-guide.md`, `start.bat`, `start.ps1`, `start.sh` |
 | Repositorio publico GitHub | Atendido | `https://github.com/evosoftwares/cashflow-challenge-Gabriel` |
 | Documentacao versionada no repositorio | Atendido | `docs/` |
 | Interface operacional para demonstracao | Atendido | `frontend/`, `docker-compose.yml`, `README.md` |
