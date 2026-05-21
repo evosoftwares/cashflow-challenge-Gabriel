@@ -5,11 +5,19 @@ cd "$(dirname "$0")"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "Docker nao foi encontrado. Instale o Docker Desktop ou Docker Engine e tente novamente."
+  echo "macOS: https://docs.docker.com/desktop/setup/install/mac-install/"
+  echo "Linux: https://docs.docker.com/engine/install/"
   exit 1
 fi
 
 if ! docker info >/dev/null 2>&1; then
   echo "Docker nao esta rodando. Abra o Docker Desktop ou inicie o servico do Docker e tente novamente."
+  exit 1
+fi
+
+if ! docker compose version >/dev/null 2>&1; then
+  echo "Docker Compose nao foi encontrado. Atualize o Docker Desktop ou instale o plugin Docker Compose."
+  echo "Documentacao oficial: https://docs.docker.com/compose/install/"
   exit 1
 fi
 

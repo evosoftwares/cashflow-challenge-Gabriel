@@ -23,6 +23,35 @@ Instale apenas:
 
 No Windows, abra o Docker Desktop e aguarde o status indicar que o Docker está rodando antes de iniciar o projeto.
 
+### Se você ainda não tem Docker
+
+Sem Docker, a aplicação completa não sobe pelo caminho oficial, porque o projeto depende de containers para iniciar API, portal, PostgreSQL, RabbitMQ, worker, outbox dispatcher e migrations de banco.
+
+Instale conforme o sistema operacional:
+
+| Sistema | Caminho recomendado |
+| --- | --- |
+| Windows 10/11 | Instalar Docker Desktop pelo guia oficial: https://docs.docker.com/desktop/setup/install/windows-install/ |
+| macOS | Instalar Docker Desktop pelo guia oficial: https://docs.docker.com/desktop/setup/install/mac-install/ |
+| Linux | Instalar Docker Engine pelo guia oficial: https://docs.docker.com/engine/install/ |
+
+No Windows, se o instalador pedir WSL 2, aceite a configuração recomendada. Depois da instalação:
+
+1. Abra o Docker Desktop.
+2. Aguarde o status indicar que o Docker está rodando.
+3. Feche e abra novamente o terminal.
+4. Verifique:
+
+```bash
+docker --version
+docker compose version
+docker info
+```
+
+Se esses três comandos funcionarem, o projeto está pronto para subir.
+
+Alternativa sem Docker existe apenas como execução manual de desenvolvimento, exigindo instalação separada de Python, Node.js, PostgreSQL e RabbitMQ. Ela não é o caminho oficial da entrega, porque aumenta muito a chance de erro no ambiente do avaliador.
+
 ## 2. Baixe o projeto
 
 Opção recomendada, usando Git:
@@ -132,11 +161,32 @@ docker compose down -v
 
 ### Docker não encontrado
 
-Instale o Docker Desktop e abra um novo terminal depois da instalação.
+Instale o Docker Desktop ou Docker Engine conforme o seu sistema:
+
+- Windows: https://docs.docker.com/desktop/setup/install/windows-install/
+- macOS: https://docs.docker.com/desktop/setup/install/mac-install/
+- Linux: https://docs.docker.com/engine/install/
+
+Depois abra um novo terminal e rode:
+
+```bash
+docker --version
+docker compose version
+```
 
 ### Docker não está rodando
 
 Abra o Docker Desktop e aguarde a inicialização.
+
+No Linux, inicie o serviço do Docker conforme a distribuição usada.
+
+### Docker Compose não encontrado
+
+Atualize o Docker Desktop ou instale o plugin Docker Compose:
+
+```text
+https://docs.docker.com/compose/install/
+```
 
 ### Porta ocupada
 

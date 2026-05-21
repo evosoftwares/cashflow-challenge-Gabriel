@@ -9,6 +9,22 @@ Este guia mostra como um avaliador ou usuario tecnico pode instalar, subir e usa
 
 Nao e necessario instalar Python, Node.js, PostgreSQL ou RabbitMQ na maquina do avaliador para usar o sistema pelo caminho oficial. Esses componentes sobem pelos containers do Docker Compose.
 
+Sem Docker, a aplicacao completa nao sobe pelo caminho oficial. O Docker e necessario para iniciar API, portal, PostgreSQL, RabbitMQ, worker, Outbox Dispatcher e migrations Alembic com o mesmo ambiente em qualquer maquina.
+
+Links oficiais de instalacao:
+
+- Windows: https://docs.docker.com/desktop/setup/install/windows-install/
+- macOS: https://docs.docker.com/desktop/setup/install/mac-install/
+- Linux: https://docs.docker.com/engine/install/
+
+Depois de instalar, valide:
+
+```bash
+docker --version
+docker compose version
+docker info
+```
+
 ## Instalacao no Windows
 
 Este e o caminho recomendado para avaliadores usando Windows 10 ou Windows 11.
@@ -61,6 +77,7 @@ Observacoes para Windows:
 - Se o Docker pedir WSL 2 durante a instalacao, aceite a configuracao recomendada pelo instalador.
 - Se o PowerShell bloquear scripts, use `.\start.bat`.
 - Se o PowerShell disser que `docker` nao existe, feche e abra o PowerShell novamente depois de iniciar o Docker Desktop.
+- Se `docker compose` nao existir, atualize ou reinstale o Docker Desktop.
 - Se alguma porta estiver ocupada, veja a secao "Solucao de problemas".
 
 ## Instalacao no macOS ou Linux
@@ -164,6 +181,33 @@ docker compose down -v
 ```
 
 ## Solucao de problemas
+
+### Docker nao encontrado
+
+Instale o Docker conforme seu sistema operacional:
+
+- Windows: https://docs.docker.com/desktop/setup/install/windows-install/
+- macOS: https://docs.docker.com/desktop/setup/install/mac-install/
+- Linux: https://docs.docker.com/engine/install/
+
+Depois abra um novo terminal e rode:
+
+```bash
+docker --version
+docker compose version
+```
+
+### Docker nao esta rodando
+
+Abra o Docker Desktop e aguarde a inicializacao. No Linux, inicie o servico do Docker conforme a distribuicao usada.
+
+### Docker Compose nao encontrado
+
+Atualize o Docker Desktop ou instale o plugin Docker Compose:
+
+```text
+https://docs.docker.com/compose/install/
+```
 
 Se alguma porta estiver ocupada, pare o processo que estiver usando:
 

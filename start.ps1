@@ -9,6 +9,8 @@ function Test-CommandExists {
 
 if (-not (Test-CommandExists "docker")) {
     Write-Host "Docker nao foi encontrado. Instale o Docker Desktop para Windows e tente novamente." -ForegroundColor Red
+    Write-Host "Guia oficial: https://docs.docker.com/desktop/setup/install/windows-install/" -ForegroundColor Yellow
+    Write-Host "Depois de instalar, abra o Docker Desktop e execute este script novamente." -ForegroundColor Yellow
     exit 1
 }
 
@@ -17,6 +19,16 @@ try {
 }
 catch {
     Write-Host "Docker nao esta rodando. Abra o Docker Desktop e tente novamente." -ForegroundColor Red
+    Write-Host "Quando o Docker Desktop indicar que esta em execucao, rode .\start.bat novamente." -ForegroundColor Yellow
+    exit 1
+}
+
+try {
+    docker compose version *> $null
+}
+catch {
+    Write-Host "Docker Compose nao foi encontrado. Atualize ou reinstale o Docker Desktop." -ForegroundColor Red
+    Write-Host "Guia oficial: https://docs.docker.com/desktop/setup/install/windows-install/" -ForegroundColor Yellow
     exit 1
 }
 
