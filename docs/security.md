@@ -17,8 +17,11 @@ Endpoints protegidos:
 - `POST /transactions`
 - `GET /transactions`
 - `GET /daily-balances/{date}`
+- `GET /daily-balances/{date}/stream`
 
 O endpoint `GET /health` é público para facilitar healthcheck local e de infraestrutura.
+
+O endpoint `GET /metrics` está público no ambiente local para facilitar validação do desafio. Em produção, ele deve ficar restrito à rede interna, ao coletor de métricas ou a uma política explícita de acesso operacional.
 
 ## Recomendado para produção
 
@@ -28,5 +31,6 @@ O endpoint `GET /health` é público para facilitar healthcheck local e de infra
 - Rotação de credenciais.
 - Segregação por merchant.
 - Criptografia de dados sensíveis.
+- Restrição de acesso ao endpoint `/metrics`.
 - Política de acesso ao RabbitMQ.
 - Política de acesso ao banco.
