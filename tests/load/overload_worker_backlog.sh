@@ -94,7 +94,7 @@ print(json.dumps({
     "concurrency": concurrency,
     "elapsed_seconds": round(elapsed, 2),
     "approx_rps": round(count / elapsed, 2),
-    "statuses": dict(Counter(results)),
+    "statuses": {str(status): count for status, count in Counter(results).items()},
 }, sort_keys=True))
 PY
 

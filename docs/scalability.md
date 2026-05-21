@@ -100,7 +100,7 @@ Essa camada usa os endurecimentos já implementados e aumenta capacidade sem mud
 
 ### Camada 2 - Absorver pico imediato
 
-- Ajustar pool de conexões com PostgreSQL.
+- Revisar e dimensionar o pool de conexões com PostgreSQL conforme telemetria real.
 - Aumentar recursos do PostgreSQL e RabbitMQ.
 - Monitorar tamanho da fila, taxa de consumo, falhas e latência de consolidação.
 

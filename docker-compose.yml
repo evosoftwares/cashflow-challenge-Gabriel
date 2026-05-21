@@ -24,6 +24,9 @@ services:
       QUEUE_NAME: transaction.created
       CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
       REALTIME_POLL_INTERVAL_SECONDS: 2
+      DATABASE_POOL_SIZE: 25
+      DATABASE_MAX_OVERFLOW: 35
+      DATABASE_POOL_TIMEOUT: 12
     ports:
       - "8000:8000"
     depends_on:
@@ -40,6 +43,9 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       API_KEY: local-dev-key
       QUEUE_NAME: transaction.created
+      DATABASE_POOL_SIZE: 10
+      DATABASE_MAX_OVERFLOW: 10
+      DATABASE_POOL_TIMEOUT: 12
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -54,6 +60,9 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       API_KEY: local-dev-key
       QUEUE_NAME: transaction.created
+      DATABASE_POOL_SIZE: 10
+      DATABASE_MAX_OVERFLOW: 10
+      DATABASE_POOL_TIMEOUT: 12
     depends_on:
       migrate:
         condition: service_completed_successfully

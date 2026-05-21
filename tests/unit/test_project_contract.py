@@ -101,6 +101,16 @@ def test_overload_worker_script_restarts_worker_on_failure():
     assert "cleanup()" in script
     assert "trap cleanup EXIT" in script
     assert "docker compose start worker" in script
+    assert '"statuses": {str(status): count for status, count in Counter(results).items()}' in script
+    assert "dict(Counter(results))" not in script
+
+
+def test_docker_compose_sets_database_pool_for_write_overload():
+    compose_text = Path("docker-compose.yml").read_text()
+
+    assert "DATABASE_POOL_SIZE: 25" in compose_text
+    assert "DATABASE_MAX_OVERFLOW: 35" in compose_text
+    assert "DATABASE_POOL_TIMEOUT: 12" in compose_text
 
 
 def test_final_delivery_artifacts_are_production_ready():

@@ -19,10 +19,10 @@ PATH=.venv/bin:$PATH pytest -q
 Resultado:
 
 ```text
-23 passed
+25 passed
 ```
 
-Cobertura relevante adicionada para realtime, observabilidade e offline:
+Cobertura relevante adicionada para realtime, observabilidade, offline e overload:
 
 - `GET /daily-balances/{date}/stream` emite evento SSE `daily_balance`.
 - O portal atualiza o `Resumo do dia` a partir do stream sem acionamento manual.
@@ -30,6 +30,7 @@ Cobertura relevante adicionada para realtime, observabilidade e offline:
 - `GET /metrics` expõe contadores de requisição HTTP e lançamentos criados.
 - `POST /transactions` aceita `client_request_id` opcional.
 - Reenvio com o mesmo `client_request_id` retorna a transação existente sem duplicar `transactions` nem `outbox_events`.
+- O engine SQLAlchemy aplica limites configuráveis de pool para suportar overload de escrita no ambiente Docker.
 
 Testes do front-end:
 
@@ -48,7 +49,7 @@ vite build completed successfully
 Validação local final também confirmou:
 
 ```text
-23 passed
+25 passed
 17 passed
 vite build completed successfully
 ```
@@ -208,9 +209,9 @@ k6 run tests/load/daily_balance_50rps.js
 Resultado:
 
 ```text
-http_reqs......................: 3000   49.997985/s
-http_req_failed................: 0.00%
-checks_succeeded...............: 100.00% 3000 out of 3000
+http_reqs......................: 3001   50.009661/s
+http_req_failed................: 0.00%  0 out of 3001
+checks_succeeded...............: 100.00% 3001 out of 3001
 ```
 
 O resultado atende ao requisito de 50 requisicoes por segundo com falha inferior a 5%.
@@ -228,7 +229,7 @@ make overload-worker
 
 Resultados observados:
 
-- Overload de leitura: 8974 requisições em 30 segundos, 299.091052 rps, 0.00% de falha.
+- Overload de leitura: 8931 requisições em 30 segundos, 297.675591 rps, 0.00% de falha.
 - Overload com worker parado: 500 lançamentos enviados, 500 respostas `201`, fila `transaction.created` acumulou 500 mensagens e drenou após religar o worker.
 - Saldo final do cenário de backlog: `500.00`.
 

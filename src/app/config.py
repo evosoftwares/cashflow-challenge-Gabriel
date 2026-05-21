@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     queue_name: str = "transaction.created"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     realtime_poll_interval_seconds: float = 2.0
+    database_pool_size: int = 5
+    database_max_overflow: int = 10
+    database_pool_timeout: int = 30
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

@@ -173,7 +173,7 @@ Testes automatizados e artefatos de validacao:
 
 Estado de verificacao registrado no fim da sessao:
 
-- `pytest -q`: 23 testes passando;
+- `pytest -q`: 25 testes passando;
 - `npm --prefix frontend test`: 17 testes passando;
 - `npm --prefix frontend run build`: build passando;
 - `docker compose config --quiet`: passando;

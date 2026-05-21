@@ -41,12 +41,12 @@ Carga aplicada:
 Resultado observado:
 
 ```text
-http_reqs......................: 8974   299.091052/s
-http_req_failed................: 0.00%  0 out of 8974
-checks_succeeded...............: 100.00% 8974 out of 8974
-http_req_duration p95..........: 4.44ms
-http_req_duration max..........: 303.51ms
-dropped_iterations.............: 27
+http_reqs......................: 8931   297.675591/s
+http_req_failed................: 0.00%  0 out of 8931
+checks_succeeded...............: 100.00% 8931 out of 8931
+http_req_duration p95..........: 169.3ms
+http_req_duration max..........: 429.39ms
+dropped_iterations.............: 70
 ```
 
 Interpretação:
@@ -93,8 +93,8 @@ Resultado observado na criação dos lançamentos:
 {
   "sent": 500,
   "concurrency": 50,
-  "elapsed_seconds": 1.23,
-  "approx_rps": 407.11,
+  "elapsed_seconds": 1.38,
+  "approx_rps": 361.78,
   "statuses": {
     "201": 500
   }
@@ -139,11 +139,13 @@ Durante overload de escrita com worker parado:
 
 ## Limites e próximos passos
 
+O ambiente Docker configura o pool da API com `DATABASE_POOL_SIZE=25`, `DATABASE_MAX_OVERFLOW=35` e `DATABASE_POOL_TIMEOUT=12` para suportar o teste de escrita concorrente sem timeout prematuro de conexão.
+
 Se a fila crescer continuamente, os próximos passos operacionais são:
 
 - escalar workers;
 - escalar Outbox Dispatcher;
-- ajustar pool de conexões;
+- revisar o dimensionamento do pool de conexões conforme telemetria real;
 - adicionar DLQ;
 - adicionar retry exponencial com limite;
 - monitorar tamanho de fila, pendências de Outbox e latência de consolidação;
